@@ -1,0 +1,389 @@
+/* 全局样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    color: white;
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* 游戏容器 */
+#gameContainer {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* 游戏标题栏 */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border-bottom: 2px solid #00ff88;
+}
+
+.game-header h1 {
+    font-size: 2rem;
+    color: #00ff88;
+    text-shadow: 0 0 10px #00ff88;
+}
+
+.game-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat .label {
+    display: block;
+    font-size: 0.8rem;
+    color: #ccc;
+}
+
+.stat .value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ff88;
+}
+
+/* 主游戏区域 */
+.game-area {
+    flex: 1;
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+}
+
+/* 对手网格显示 */
+.opponents-grid {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+#opponentsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    max-height: 100%;
+}
+
+.opponent-board {
+    width: 80px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #333;
+    border-radius: 5px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.opponent-board.eliminated {
+    opacity: 0.3;
+    background: rgba(255, 0, 0, 0.2);
+}
+
+.opponent-board.targeting {
+    border-color: #ff4444;
+    box-shadow: 0 0 10px #ff4444;
+}
+
+.opponent-board.targeted {
+    border-color: #ffaa00;
+    box-shadow: 0 0 10px #ffaa00;
+}
+
+.opponent-rank {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    font-size: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+/* 主游戏区 */
+.main-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+#gameCanvas {
+    border: 3px solid #00ff88;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+/* 攻击目标选择器 */
+.target-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.target-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #666;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.target-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #00ff88;
+}
+
+.target-btn.active {
+    background: #00ff88;
+    border-color: #00ff88;
+    color: #000;
+    font-weight: bold;
+}
+
+/* 控制提示 */
+.controls-hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #ccc;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 15px;
+    border-radius: 5px;
+}
+
+/* 游戏信息面板 */
+.game-info {
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.next-piece, .hold-piece {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+}
+
+.next-piece h3, .hold-piece h3 {
+    margin-bottom: 10px;
+    color: #00ff88;
+}
+
+#nextCanvas, #holdCanvas {
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* 连击信息 */
+.combo-info {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+}
+
+.combo-info h3 {
+    color: #00ff88;
+    margin-bottom: 10px;
+}
+
+.combo-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff4444;
+    text-shadow: 0 0 10px #ff4444;
+}
+
+/* 攻击队列 */
+.attack-queue {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.attack-queue h3 {
+    color: #00ff88;
+    margin-bottom: 10px;
+}
+
+.queue-display {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.attack-line {
+    height: 15px;
+    background: #ff4444;
+    border-radius: 2px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 游戏覆盖层 */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 40px;
+    background: rgba(26, 26, 46, 0.95);
+    border-radius: 20px;
+    border: 2px solid #00ff88;
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+}
+
+.overlay-content h2 {
+    font-size: 3rem;
+    color: #00ff88;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px #00ff88;
+}
+
+.overlay-content p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+    color: #ccc;
+}
+
+.start-btn {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    background: #00ff88;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+    background: #00cc6a;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .game-area {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .opponents-grid {
+        height: 200px;
+    }
+    
+    #opponentsContainer {
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    }
+    
+    .opponent-board {
+        width: 60px;
+        height: 75px;
+    }
+    
+    .game-info {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+    
+    .next-piece, .hold-piece, .combo-info, .attack-queue {
+        flex: 1;
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .game-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .game-stats {
+        gap: 15px;
+    }
+    
+    .stat .value {
+        font-size: 1.2rem;
+    }
+    
+    #gameCanvas {
+        width: 300px;
+        height: 600px;
+    }
+    
+    .target-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .overlay-content h2 {
+        font-size: 2rem;
+    }
+}
+
+/* 特效动画 */
+@keyframes lineFlash {
+    0% { background-color: white; }
+    100% { background-color: transparent; }
+}
+
+@keyframes koEffect {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+.line-clear-effect {
+    animation: lineFlash 0.3s ease-in-out;
+}
+
+.ko-effect {
+    animation: koEffect 0.5s ease-in-out;
+}
+
+/* 隐藏类 */
+.hidden {
+    display: none !important;
+}
