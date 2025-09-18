@@ -344,6 +344,25 @@ class BadgeSystem {
     }
 
     /**
+     * 渲染所有玩家的徽章
+     * @param {CanvasRenderingContext2D} ctx - 画布上下文
+     * @param {Array} players - 玩家数组
+     */
+    render(ctx, players) {
+        if (!players || !Array.isArray(players)) return;
+        
+        // 为每个玩家渲染徽章（这里可以根据需要调整渲染位置）
+        players.forEach((player, index) => {
+            if (player && player.badges) {
+                // 在右侧区域渲染玩家徽章
+                const x = ctx.canvas.width - 200;
+                const y = 50 + index * 30;
+                this.renderPlayerBadges(ctx, player, x, y, 16);
+            }
+        });
+    }
+
+    /**
      * 重置玩家徽章和统计
      * @param {Object} player - 玩家对象
      */

@@ -76,7 +76,7 @@ class BattleSystem {
                 }
             };
             
-            humanPlayer.gameEngine.init();
+            humanPlayer.gameEngine.initializeGame();
             humanPlayer.gameEngine.dropSpeed = this.settings.dropSpeed;
             this.players.push(humanPlayer);
         }
@@ -109,7 +109,7 @@ class BattleSystem {
                 }
             };
             
-            aiPlayer.gameEngine.init();
+            aiPlayer.gameEngine.initializeGame();
             aiPlayer.gameEngine.dropSpeed = this.settings.dropSpeed;
             aiPlayer.aiPlayer.init(aiPlayer.gameEngine);
             aiPlayer.aiPlayer.difficulty = this.settings.aiDifficulty;
