@@ -95,6 +95,17 @@ class AIPlayer {
     }
 
     /**
+     * 初始化AI玩家，绑定外部游戏引擎
+     * @param {TetrisGameEngine} gameEngine - 游戏引擎实例
+     */
+    init(gameEngine) {
+        this.gameEngine = gameEngine;
+        this.isAlive = true;
+        this.lastMoveTime = 0;
+        this.moveDelay = this.getMoveDelay();
+    }
+
+    /**
      * 更新AI玩家状态
      * @param {number} deltaTime - 时间增量（毫秒）
      */
@@ -481,32 +492,50 @@ class AIPlayer {
         switch (strategy) {
             case 'random':
                 return alivePlayers[Math.floor(Math.random() * alivePlayers.length)].id;
-            
+
             case 'attacker':
-                // 攻击正在攻击自己的玩家
                 const attackers = alivePlayers.filter(p => p.targetPlayer === this.id);
                 if (attackers.length > 0) {
                     return attackers[Math.floor(Math.random() * attackers.length)].id;
                 }
                 return this.selectTarget(players, 'random');
-            
+
             case 'ko':
-                // 攻击血量最少的玩家
-                const weakest = alivePlayers.reduce((min, p) => 
-                    p.gameEngine.getMaxHeight(p.gameEngine.board) > min.gameEngine.getMaxHeight(min.gameEngine.board) ? p : min
-                );
-                return weakest.id;
-            
+                // 攻击高度最高的玩家（最接近出局）
+                let worstPlayer = alivePlayers[0];
+                let maxHeight = 0;
+                alivePlayers.forEach(p => {
+                    const h = this.getPlayerBoardHeight(p.gameEngine.board);
+                    if (h > maxHeight) {
+                        maxHeight = h;
+                        worstPlayer = p;
+                    }
+                });
+                return worstPlayer.id;
+
             case 'badge':
-                // 攻击KO数最多的玩家
-                const strongest = alivePlayers.reduce((max, p) => 
+                const strongest = alivePlayers.reduce((max, p) =>
                     p.koCount > max.koCount ? p : max
                 );
                 return strongest.id;
-            
+
             default:
                 return this.selectTarget(players, 'random');
         }
+    }
+
+    /**
+     * 获取玩家游戏板高度
+     * @param {Array} board - 游戏板
+     * @returns {number} 高度
+     */
+    getPlayerBoardHeight(board) {
+        for (let y = 0; y < board.length; y++) {
+            if (board[y].some(cell => cell !== null)) {
+                return board.length - y;
+            }
+        }
+        return 0;
     }
 
     /**

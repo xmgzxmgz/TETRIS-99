@@ -54,8 +54,6 @@ class UIManager {
         
         // 设置画布样式
         this.setupCanvas();
-        
-        console.log('UI管理器初始化完成');
     }
     
     /**

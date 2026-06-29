@@ -72,8 +72,7 @@ class TestEnvironment {
      * @returns {Promise} 测试结果
      */
     async startTest(gameInstance) {
-        console.log('开始AI测试环境...');
-        
+
         this.gameInstance = gameInstance;
         this.resetTestState();
         
@@ -89,12 +88,10 @@ class TestEnvironment {
             
             // 分析结果
             this.analyzeResults();
-            
-            console.log('测试完成:', this.testResults);
+
             return this.testResults;
-            
+
         } catch (error) {
-            console.error('测试过程中发生错误:', error);
             this.testResults.passed = false;
             this.testResults.issues.push(`测试异常: ${error.message}`);
             return this.testResults;
@@ -138,8 +135,7 @@ class TestEnvironment {
      * 初始化测试环境
      */
     async initializeTestEnvironment() {
-        console.log('初始化测试环境...');
-        
+
         // 创建测试用的battle system
         if (!this.gameInstance.battleSystem) {
             throw new Error('Battle system not found');
@@ -153,8 +149,6 @@ class TestEnvironment {
         
         // 配置测试事件
         this.setupTestEvents();
-        
-        console.log(`测试环境初始化完成: ${this.config.totalPlayers}个玩家`);
     }
 
     /**
@@ -206,7 +200,6 @@ class TestEnvironment {
         }
         
         battleSystem.alivePlayers = this.config.totalPlayers;
-        console.log(`创建了${this.config.totalPlayers}个玩家 (1个人类, ${this.config.aiPlayers}个AI)`);
     }
 
     /**
@@ -244,7 +237,6 @@ class TestEnvironment {
                 this.recordFramePerformance(frameTime);
                 
             } catch (error) {
-                console.error('游戏循环错误:', error);
                 this.testState.crashCount++;
                 this.testResults.issues.push(`游戏循环崩溃: ${error.message}`);
             }
@@ -285,8 +277,7 @@ class TestEnvironment {
      * 运行测试
      */
     async runTest() {
-        console.log('开始运行测试...');
-        
+
         this.testState.isRunning = true;
         this.testState.startTime = Date.now();
         
@@ -425,8 +416,7 @@ class TestEnvironment {
      * 停止测试
      */
     stopTest() {
-        console.log('停止测试...');
-        
+
         this.testState.isRunning = false;
         
         if (this.performanceInterval) {
@@ -443,8 +433,7 @@ class TestEnvironment {
      * 分析测试结果
      */
     analyzeResults() {
-        console.log('分析测试结果...');
-        
+
         const elapsed = Date.now() - this.testState.startTime;
         const avgFrameTime = this.testState.totalFrameTime / this.testState.frameCount;
         const fps = 1000 / avgFrameTime;
@@ -632,8 +621,6 @@ class TestEnvironment {
             delete this.gameInstance.gameLoop;
             delete this.gameInstance.endGame;
         }
-        
-        console.log('测试环境已清理');
     }
 }
 

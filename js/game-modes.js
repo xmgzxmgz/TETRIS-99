@@ -54,7 +54,6 @@ class GameModes {
     setMode(mode) {
         if (this.modes[mode]) {
             this.currentMode = mode;
-            console.log(`切换到游戏模式: ${this.modes[mode].name}`);
             return true;
         }
         return false;

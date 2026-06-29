@@ -398,7 +398,7 @@ T-Spin次数: ${stats.tSpins}
             };
             localStorage.setItem('tetris99_stats', JSON.stringify(data));
         } catch (error) {
-            console.warn('无法保存统计数据:', error);
+            // silent fail
         }
     }
 
@@ -414,7 +414,7 @@ T-Spin次数: ${stats.tSpins}
                 this.globalStats = { ...this.globalStats, ...parsed.globalStats };
             }
         } catch (error) {
-            console.warn('无法加载统计数据:', error);
+            // silent fail
         }
     }
 

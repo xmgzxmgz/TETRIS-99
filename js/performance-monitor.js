@@ -50,7 +50,6 @@ class PerformanceMonitor {
      */
     initialize() {
         this.isMonitoring = true;
-        console.log('性能监控器已初始化');
     }
 
     /**
@@ -159,8 +158,6 @@ class PerformanceMonitor {
         if (this.frameTime > this.thresholds.maxFrameTime * 2) {
             this.optimizations.useSimplifiedPhysics = true;
         }
-        
-        console.log('性能优化已启用:', this.optimizations);
     }
 
     /**

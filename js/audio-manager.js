@@ -24,7 +24,6 @@ class AudioManager {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         } catch (e) {
-            console.log('Web Audio API 不支持');
             this.enabled = false;
         }
     }
@@ -74,7 +73,7 @@ class AudioManager {
                 oscillator.start(this.audioContext.currentTime);
                 oscillator.stop(this.audioContext.currentTime + duration);
             } catch (e) {
-                console.log('音效播放失败:', e);
+                // silent fail
             }
         };
     }
@@ -166,7 +165,7 @@ class AudioManager {
 
                 currentTime += note.duration;
             } catch (e) {
-                console.log('旋律播放失败:', e);
+                // silent fail
             }
         });
 

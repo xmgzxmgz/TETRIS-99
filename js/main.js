@@ -22,6 +22,7 @@ class Tetris99Game {
         
         // 游戏系统
         this.battleSystem = new BattleSystem();
+        this.battleSystem.init(); // 初始化玩家（尚未开始游戏）
         this.humanPlayer = this.battleSystem.humanPlayer;
         
         // 游戏状态
@@ -88,28 +89,27 @@ class Tetris99Game {
      * 设置事件监听器
      */
     setupEventListeners() {
-        // 键盘事件
-        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
-        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
-        
-        // 开始按钮
+        this._boundKeyDown = (e) => this.handleKeyDown(e);
+        this._boundKeyUp = (e) => this.handleKeyUp(e);
+        this._boundResize = () => this.resizeCanvas();
+        this._boundPreventScroll = (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('keydown', this._boundKeyDown);
+        document.addEventListener('keyup', this._boundKeyUp);
+
         this.startButton.addEventListener('click', () => this.startGame());
-        
-        // 攻击目标选择按钮
+
         document.getElementById('targetRandom').addEventListener('click', () => this.setAttackStrategy('random'));
         document.getElementById('targetAttacker').addEventListener('click', () => this.setAttackStrategy('attacker'));
         document.getElementById('targetKO').addEventListener('click', () => this.setAttackStrategy('ko'));
         document.getElementById('targetBadge').addEventListener('click', () => this.setAttackStrategy('badge'));
-        
-        // 窗口大小变化
-        window.addEventListener('resize', () => this.resizeCanvas());
-        
-        // 防止页面滚动
-        window.addEventListener('keydown', (e) => {
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-                e.preventDefault();
-            }
-        });
+
+        window.addEventListener('resize', this._boundResize);
+        window.addEventListener('keydown', this._boundPreventScroll);
     }
 
     /**
@@ -300,7 +300,6 @@ class Tetris99Game {
         
         if (this.targetingSystem) {
             this.targetingSystem.setStrategy(strategy);
-            console.log(`切换攻击策略: ${this.targetingSystem.getStrategyDisplayName(strategy)}`);
             
             // 显示策略切换提示
             this.showMessage(`攻击策略: ${this.targetingSystem.getStrategyDisplayName(strategy)}`);
@@ -312,11 +311,9 @@ class Tetris99Game {
      */
     async startAITest() {
         if (this.isTestMode) {
-            console.log('测试已在进行中...');
             return;
         }
-        
-        console.log('开始AI测试环境...');
+
         this.isTestMode = true;
         this.gameState = 'testing';
         
@@ -331,7 +328,6 @@ class Tetris99Game {
             this.showTestResults();
             
         } catch (error) {
-            console.error('测试失败:', error);
             this.showMessage(`测试失败: ${error.message}`);
         } finally {
             this.isTestMode = false;
@@ -385,8 +381,7 @@ class Tetris99Game {
         
         const stats = this.performanceMonitor.getStats();
         const message = `FPS: ${stats.fps.toFixed(1)} | 帧时间: ${stats.frameTime.toFixed(2)}ms | 内存: ${(stats.memory / 1024 / 1024).toFixed(1)}MB`;
-        
-        console.log('性能统计:', stats);
+
         this.showMessage(message);
     }
 
@@ -495,15 +490,12 @@ class Tetris99Game {
         `;
         
         document.body.appendChild(resultUI);
-        
-        console.log('测试报告:', report);
     }
 
     /**
      * 开始游戏
      */
     startGame() {
-        console.log('开始游戏');
         this.gameRunning = true;
         this.gameStartTime = Date.now();
         this.hideStartScreen();
@@ -527,6 +519,7 @@ class Tetris99Game {
         
         // 初始化战斗系统
         this.battleSystem.startGame(gameSettings);
+        this.humanPlayer = this.battleSystem.humanPlayer;
         
         // 重置道具系统
         if (this.powerUpSystem) {
@@ -566,8 +559,7 @@ class Tetris99Game {
      * @param {Object} winner - 获胜者
      */
     showGameOverScreen(winner) {
-        console.log('游戏结束，获胜者:', winner);
-        
+
         // 记录游戏统计
         if (this.statisticsSystem && this.battleSystem) {
             this.battleSystem.players.forEach(player => {
@@ -754,14 +746,19 @@ class Tetris99Game {
      */
     updateAttackQueueDisplay() {
         const queueContainer = document.getElementById('attackQueue');
-        queueContainer.innerHTML = '';
-        
-        this.humanPlayer.attackQueue.forEach((attack, index) => {
-            const attackElement = document.createElement('div');
-            attackElement.className = 'attack-line';
-            attackElement.style.animationDelay = `${index * 0.1}s`;
-            queueContainer.appendChild(attackElement);
-        });
+        const count = this.humanPlayer.attackQueue.length;
+
+        // Only rebuild if count changed
+        if (this._lastAttackQueueCount !== count) {
+            this._lastAttackQueueCount = count;
+            queueContainer.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const el = document.createElement('div');
+                el.className = 'attack-line';
+                el.style.animationDelay = `${i * 0.1}s`;
+                queueContainer.appendChild(el);
+            }
+        }
     }
 
     /**
@@ -770,73 +767,75 @@ class Tetris99Game {
     updateOpponentsGrid() {
         const container = document.getElementById('opponentsContainer');
         const opponents = this.battleSystem.getOpponentsStatus();
-        
-        // 清空现有内容
-        container.innerHTML = '';
-        
-        // 创建对手显示元素
+
+        // Initialize cached elements on first call
+        if (!this._opponentElements) {
+            this._opponentElements = new Map();
+            this._opponentCanvases = new Map();
+        }
+
+        // Add new opponents
         opponents.forEach(opponent => {
-            const opponentElement = document.createElement('div');
-            opponentElement.className = 'opponent-board';
-            opponentElement.id = `opponent-${opponent.id}`;
-            
-            if (!opponent.isAlive) {
-                opponentElement.classList.add('eliminated');
+            if (!this._opponentElements.has(opponent.id)) {
+                const el = document.createElement('div');
+                el.className = 'opponent-board';
+                el.id = `opponent-${opponent.id}`;
+
+                const rankEl = document.createElement('div');
+                rankEl.className = 'opponent-rank';
+                el.appendChild(rankEl);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 76;
+                canvas.height = 96;
+                canvas.style.position = 'absolute';
+                canvas.style.top = '15px';
+                canvas.style.left = '2px';
+                el.appendChild(canvas);
+
+                container.appendChild(el);
+                this._opponentElements.set(opponent.id, { el, rankEl, canvas });
+                this._opponentCanvases.set(opponent.id, canvas.getContext('2d'));
             }
-            if (opponent.targeting) {
-                opponentElement.classList.add('targeting');
+
+            const cached = this._opponentElements.get(opponent.id);
+            const { el, rankEl, canvas } = cached;
+            const ctx = this._opponentCanvases.get(opponent.id);
+
+            // Update classes
+            el.classList.toggle('eliminated', !opponent.isAlive);
+            el.classList.toggle('targeting', !!opponent.targeting);
+            el.classList.toggle('targeted', !!opponent.targeted);
+
+            // Update rank text
+            rankEl.textContent = opponent.rank;
+
+            // Update mini board
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const height = opponent.height;
+            const maxHeight = 20;
+            const fillHeight = Math.min(height, maxHeight);
+
+            if (fillHeight > 0) {
+                const barHeight = (fillHeight / maxHeight) * canvas.height;
+                const hue = Math.max(0, 120 - (fillHeight / maxHeight) * 120);
+                ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+                ctx.fillRect(2, canvas.height - barHeight, canvas.width - 4, barHeight);
             }
-            if (opponent.targeted) {
-                opponentElement.classList.add('targeted');
-            }
-            
-            // 添加排名显示
-            const rankElement = document.createElement('div');
-            rankElement.className = 'opponent-rank';
-            rankElement.textContent = opponent.rank;
-            opponentElement.appendChild(rankElement);
-            
-            // 添加简化的游戏板显示
-            this.renderMiniBoard(opponentElement, opponent);
-            
-            container.appendChild(opponentElement);
         });
+
+        // Remove eliminated opponents that are gone
+        for (const [id, cached] of this._opponentElements) {
+            if (!opponents.find(o => o.id === id)) {
+                cached.el.remove();
+                this._opponentElements.delete(id);
+                this._opponentCanvases.delete(id);
+            }
+        }
     }
 
-    /**
-     * 渲染迷你游戏板
-     * @param {HTMLElement} container - 容器元素
-     * @param {Object} opponent - 对手数据
-     */
-    renderMiniBoard(container, opponent) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 76;
-        canvas.height = 96;
-        canvas.style.position = 'absolute';
-        canvas.style.top = '15px';
-        canvas.style.left = '2px';
-        
-        const ctx = canvas.getContext('2d');
-        
-        // 简化渲染 - 只显示高度信息
-        const height = opponent.height;
-        const maxHeight = 20;
-        const fillHeight = Math.min(height, maxHeight);
-        
-        // 绘制背景
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 绘制高度指示器
-        if (fillHeight > 0) {
-            const barHeight = (fillHeight / maxHeight) * canvas.height;
-            const hue = Math.max(0, 120 - (fillHeight / maxHeight) * 120); // 从绿到红
-            ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
-            ctx.fillRect(2, canvas.height - barHeight, canvas.width - 4, barHeight);
-        }
-        
-        container.appendChild(canvas);
-    }
 
     /**
      * 主渲染函数
@@ -1150,6 +1149,21 @@ class Tetris99Game {
         });
         
         this.ctx.restore();
+    }
+
+    /**
+     * 销毁游戏实例，清理资源
+     */
+    destroy() {
+        document.removeEventListener('keydown', this._boundKeyDown);
+        document.removeEventListener('keyup', this._boundKeyUp);
+        window.removeEventListener('resize', this._boundResize);
+        window.removeEventListener('keydown', this._boundPreventScroll);
+
+        Object.values(this.keyRepeatTimers).forEach(t => clearInterval(t));
+        this.keyRepeatTimers = {};
+
+        this.gameRunning = false;
     }
 }
 

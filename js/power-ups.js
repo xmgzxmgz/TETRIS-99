@@ -204,8 +204,6 @@ class PowerUpSystem {
         if (powerUp.type === 'instant') {
             this.executePowerUp(playerId, activePowerUp);
         }
-        
-        console.log(`玩家 ${playerId} 获得道具: ${powerUp.name}`);
     }
 
     /**
