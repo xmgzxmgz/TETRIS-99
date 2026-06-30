@@ -825,6 +825,9 @@ class Game {
 
         this._setup();
         this._showStart();
+        // Initial canvas sizing
+        this.renderer.cv.width = 280;
+        this.renderer.cv.height = 560;
         this._loop(performance.now());
     }
 
