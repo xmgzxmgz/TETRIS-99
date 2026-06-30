@@ -1,389 +1,495 @@
-/* 全局样式重置 */
-* {
+/* ============================================
+   TETRIS 99 - iOS 27 Design Language
+   Frosted glass · Rounded cards · Fluid motion
+   ============================================ */
+
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.15);
+    --accent: #0a84ff;
+    --accent-glow: rgba(10, 132, 255, 0.3);
+    --success: #30d158;
+    --danger: #ff453a;
+    --warning: #ff9f0a;
+    --text-primary: rgba(255, 255, 255, 0.95);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.35);
+    --radius-sm: 12px;
+    --radius-md: 18px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    color: white;
+html, body {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    height: 100vh;
 }
 
-/* 游戏容器 */
-#gameContainer {
-    width: 100vw;
-    height: 100vh;
+body {
+    font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+    background: #0a0a1a;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+}
+
+/* Animated gradient background */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(88, 86, 214, 0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 70%, rgba(10, 132, 255, 0.2) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(175, 82, 222, 0.15) 0%, transparent 50%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* ── Layout ─────────────────────────────── */
+#app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    position: relative;
 }
 
-/* 游戏标题栏 */
-.game-header {
+/* ── Top Bar (glass) ────────────────────── */
+.top-bar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
-    background: rgba(0, 0, 0, 0.8);
-    border-bottom: 2px solid #00ff88;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
 }
 
-.game-header h1 {
-    font-size: 2rem;
-    color: #00ff88;
-    text-shadow: 0 0 10px #00ff88;
+.top-bar__title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.6));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.game-stats {
+.top-bar__stats {
     display: flex;
-    gap: 30px;
+    gap: 28px;
 }
 
-.stat {
-    text-align: center;
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
 }
 
-.stat .label {
-    display: block;
-    font-size: 0.8rem;
-    color: #ccc;
+.stat-item__label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
 }
 
-.stat .value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #00ff88;
+.stat-item__value {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    transition: transform 0.2s var(--spring);
 }
 
-/* 主游戏区域 */
-.game-area {
+.stat-item__value.bump {
+    transform: scale(1.2);
+}
+
+/* ── Main Area ──────────────────────────── */
+.main-area {
     flex: 1;
     display: flex;
-    padding: 20px;
-    gap: 20px;
+    padding: 16px;
+    gap: 16px;
+    min-height: 0;
+    overflow: hidden;
 }
 
-/* 对手网格显示 */
+/* ── Opponents Panel (glass) ────────────── */
+.opponents-panel {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.opponents-panel__header {
+    padding: 14px 16px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
 .opponents-grid {
     flex: 1;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    padding: 15px;
     overflow-y: auto;
-}
-
-#opponentsContainer {
+    padding: 10px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-    max-height: 100%;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    align-content: start;
 }
 
-.opponent-board {
-    width: 80px;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid #333;
-    border-radius: 5px;
+/* Scrollbar styling */
+.opponents-grid::-webkit-scrollbar { width: 4px; }
+.opponents-grid::-webkit-scrollbar-track { background: transparent; }
+.opponents-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.opponent-card {
+    aspect-ratio: 4 / 5;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
     position: relative;
-    transition: all 0.3s ease;
+    overflow: hidden;
+    transition: all 0.3s var(--ease-out);
 }
 
-.opponent-board.eliminated {
-    opacity: 0.3;
-    background: rgba(255, 0, 0, 0.2);
+.opponent-card canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
-.opponent-board.targeting {
-    border-color: #ff4444;
-    box-shadow: 0 0 10px #ff4444;
-}
-
-.opponent-board.targeted {
-    border-color: #ffaa00;
-    box-shadow: 0 0 10px #ffaa00;
-}
-
-.opponent-rank {
+.opponent-card__rank {
     position: absolute;
-    top: 2px;
-    left: 2px;
-    font-size: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 1px 3px;
-    border-radius: 3px;
+    top: 3px;
+    left: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    padding: 1px 5px;
+    border-radius: 6px;
+    color: var(--text-secondary);
 }
 
-/* 主游戏区 */
-.main-game {
+.opponent-card.eliminated {
+    opacity: 0.2;
+    filter: grayscale(1);
+}
+
+.opponent-card.targeting {
+    border-color: var(--danger);
+    box-shadow: 0 0 12px rgba(255, 69, 58, 0.3);
+}
+
+.opponent-card.targeted {
+    border-color: var(--warning);
+    box-shadow: 0 0 12px rgba(255, 159, 10, 0.3);
+}
+
+/* ── Game Board (center) ────────────────── */
+.game-center {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
+    justify-content: center;
+    min-width: 0;
+    gap: 12px;
+}
+
+.game-board-wrapper {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px var(--glass-border),
+        0 8px 40px rgba(0, 0, 0, 0.4),
+        0 0 80px rgba(10, 132, 255, 0.08);
 }
 
 #gameCanvas {
-    border: 3px solid #00ff88;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    display: block;
+    background: rgba(0, 0, 0, 0.7);
 }
 
-/* 攻击目标选择器 */
-.target-selector {
+/* ── Target Selector ────────────────────── */
+.target-bar {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .target-btn {
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #666;
-    border-radius: 5px;
-    color: white;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
+    transition: all 0.25s var(--ease-out);
+    letter-spacing: 0.2px;
 }
 
 .target-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: #00ff88;
+    background: var(--glass-highlight);
+    color: var(--text-primary);
 }
 
 .target-btn.active {
-    background: #00ff88;
-    border-color: #00ff88;
-    color: #000;
-    font-weight: bold;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 12px var(--accent-glow);
 }
 
-/* 控制提示 */
+/* ── Controls Hint ──────────────────────── */
 .controls-hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
     text-align: center;
-    font-size: 0.8rem;
-    color: #ccc;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 8px 15px;
-    border-radius: 5px;
+    letter-spacing: 0.3px;
 }
 
-/* 游戏信息面板 */
-.game-info {
-    width: 200px;
+/* ── Info Panel (right, glass) ──────────── */
+.info-panel {
+    width: 180px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
 }
 
-.next-piece, .hold-piece {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    padding: 15px;
+.info-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
     text-align: center;
 }
 
-.next-piece h3, .hold-piece h3 {
+.info-card__title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
     margin-bottom: 10px;
-    color: #00ff88;
 }
 
-#nextCanvas, #holdCanvas {
-    border: 1px solid #333;
-    border-radius: 5px;
-    background: rgba(0, 0, 0, 0.8);
-}
-
-/* 连击信息 */
-.combo-info {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-}
-
-.combo-info h3 {
-    color: #00ff88;
-    margin-bottom: 10px;
+.info-card canvas {
+    display: block;
+    margin: 0 auto;
+    border-radius: var(--radius-sm);
 }
 
 .combo-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #ff4444;
-    text-shadow: 0 0 10px #ff4444;
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--danger);
+    text-shadow: 0 0 30px rgba(255, 69, 58, 0.4);
+    line-height: 1;
+    transition: transform 0.2s var(--spring);
 }
 
-/* 攻击队列 */
-.attack-queue {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    padding: 15px;
+.combo-value.bump {
+    transform: scale(1.3);
 }
 
-.attack-queue h3 {
-    color: #00ff88;
-    margin-bottom: 10px;
-}
-
-.queue-display {
+/* Attack queue */
+.attack-queue-bars {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    min-height: 20px;
 }
 
-.attack-line {
-    height: 15px;
-    background: #ff4444;
-    border-radius: 2px;
-    animation: pulse 1s infinite;
+.attack-bar {
+    height: 8px;
+    background: linear-gradient(90deg, var(--danger), rgba(255, 69, 58, 0.4));
+    border-radius: 4px;
+    animation: attack-pulse 0.8s ease-in-out infinite alternate;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+@keyframes attack-pulse {
+    from { opacity: 0.6; transform: scaleX(0.95); }
+    to   { opacity: 1;   transform: scaleX(1); }
 }
 
-/* 游戏覆盖层 */
+/* ── Overlay (frosted glass) ────────────── */
 .overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    position: fixed;
+    inset: 0;
+    z-index: 100;
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 1000;
+    justify-content: center;
+    background: rgba(10, 10, 26, 0.6);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    opacity: 1;
+    transition: opacity 0.4s var(--ease-out);
 }
 
-.overlay-content {
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.overlay-card {
     text-align: center;
-    padding: 40px;
-    background: rgba(26, 26, 46, 0.95);
-    border-radius: 20px;
-    border: 2px solid #00ff88;
-    box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+    padding: 48px 60px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    max-width: 420px;
+    width: 90%;
+    transform: scale(1);
+    transition: transform 0.5s var(--spring);
 }
 
-.overlay-content h2 {
-    font-size: 3rem;
-    color: #00ff88;
-    margin-bottom: 20px;
-    text-shadow: 0 0 20px #00ff88;
+.overlay.hidden .overlay-card {
+    transform: scale(0.9);
 }
 
-.overlay-content p {
-    font-size: 1.2rem;
-    margin-bottom: 30px;
-    color: #ccc;
+.overlay-card__title {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 20%, rgba(255,255,255,0.5));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+}
+
+.overlay-card__subtitle {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.overlay-card__stats {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.8;
 }
 
 .start-btn {
-    padding: 15px 30px;
-    font-size: 1.2rem;
-    background: #00ff88;
-    color: #000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 40px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
     border: none;
-    border-radius: 10px;
+    border-radius: 100px;
     cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
+    transition: all 0.3s var(--spring);
+    box-shadow: 0 4px 20px var(--accent-glow);
+    letter-spacing: -0.2px;
 }
 
 .start-btn:hover {
-    background: #00cc6a;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 30px var(--accent-glow);
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-    .game-area {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .opponents-grid {
-        height: 200px;
-    }
-    
-    #opponentsContainer {
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    }
-    
-    .opponent-board {
-        width: 60px;
-        height: 75px;
-    }
-    
-    .game-info {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-around;
-    }
-    
-    .next-piece, .hold-piece, .combo-info, .attack-queue {
-        flex: 1;
-        max-width: 200px;
-    }
+.start-btn:active {
+    transform: translateY(0) scale(0.98);
 }
 
-@media (max-width: 768px) {
-    .game-header h1 {
-        font-size: 1.5rem;
-    }
-    
-    .game-stats {
-        gap: 15px;
-    }
-    
-    .stat .value {
-        font-size: 1.2rem;
-    }
-    
-    #gameCanvas {
-        width: 300px;
-        height: 600px;
-    }
-    
-    .target-btn {
-        padding: 6px 12px;
-        font-size: 0.8rem;
-    }
-    
-    .overlay-content h2 {
-        font-size: 2rem;
-    }
+/* ── Toast Messages ─────────────────────── */
+.toast {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--glass-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    z-index: 200;
+    opacity: 0;
+    transition: all 0.35s var(--spring);
+    pointer-events: none;
 }
 
-/* 特效动画 */
-@keyframes lineFlash {
-    0% { background-color: white; }
-    100% { background-color: transparent; }
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 
-@keyframes koEffect {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.8; }
-    100% { transform: scale(0); opacity: 0; }
+/* ── Line clear flash ───────────────────── */
+@keyframes line-flash {
+    0%   { background: rgba(255, 255, 255, 0.8); }
+    100% { background: transparent; }
 }
 
-.line-clear-effect {
-    animation: lineFlash 0.3s ease-in-out;
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 900px) {
+    .opponents-panel { width: 160px; }
+    .info-panel { width: 140px; }
+    .opponents-grid { grid-template-columns: repeat(3, 1fr); }
+    .top-bar__stats { gap: 16px; }
+    .stat-item__value { font-size: 18px; }
 }
 
-.ko-effect {
-    animation: koEffect 0.5s ease-in-out;
+@media (max-width: 680px) {
+    .opponents-panel { display: none; }
+    .info-panel { width: 120px; }
+    .main-area { padding: 10px; gap: 10px; }
+    .top-bar { padding: 10px 16px; }
+    .top-bar__title { font-size: 16px; }
 }
 
-/* 隐藏类 */
-.hidden {
-    display: none !important;
+@media (max-width: 480px) {
+    .info-panel { display: none; }
+    .main-area { padding: 8px; }
+    .overlay-card { padding: 32px 24px; }
+    .overlay-card__title { font-size: 30px; }
 }
