@@ -1,15 +1,14 @@
 /* ============================================
    TETRIS 99 - Liquid Glass Edition
-   iOS 27 design - All logic self-contained
+   iOS 27 · Real opponent boards · T-Spin effects
    ============================================ */
 'use strict';
 
-const COLORS = {
-    I: '#32d7eb', O: '#ffd60a', T: '#bf5af2',
-    S: '#30d158', Z: '#ff453a', J: '#0a84ff', L: '#ff9f0a'
-};
+/* ── Piece data ─────────────────────────── */
+var COLORS = { I:'#32d7eb', O:'#ffd60a', T:'#bf5af2', S:'#30d158', Z:'#ff453a', J:'#0a84ff', L:'#ff9f0a' };
+var GARBAGE_COLOR = '#555';
 
-const SHAPES = {
+var SHAPES = {
     I:[[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],[[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],[[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]],
     O:[[[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]]],
     T:[[[0,0,0,0],[0,1,0,0],[1,1,1,0],[0,0,0,0]],[[0,0,0,0],[0,1,0,0],[0,1,1,0],[0,1,0,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,0],[0,1,0,0]],[[0,0,0,0],[0,1,0,0],[1,1,0,0],[0,1,0,0]]],
@@ -19,996 +18,667 @@ const SHAPES = {
     L:[[[0,0,0,0],[0,0,1,0],[1,1,1,0],[0,0,0,0]],[[0,0,0,0],[0,1,0,0],[0,1,0,0],[0,1,1,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,0],[1,0,0,0]],[[0,0,0,0],[1,1,0,0],[0,1,0,0],[0,1,0,0]]]
 };
 
-const KICKS = {
-    J: {
-        '01': [[-1,0],[-1,1],[0,-2],[-1,-2]], '10': [[1,0],[1,-1],[0,2],[1,2]],
-        '12': [[1,0],[1,-1],[0,2],[1,2]], '21': [[-1,0],[-1,1],[0,-2],[-1,-2]],
-        '23': [[1,0],[1,1],[0,-2],[1,-2]], '32': [[-1,0],[-1,-1],[0,2],[-1,2]],
-        '30': [[-1,0],[-1,-1],[0,2],[-1,2]], '03': [[1,0],[1,1],[0,-2],[1,-2]]
-    },
-    I: {
-        '01': [[-2,0],[1,0],[-2,-1],[1,2]], '10': [[2,0],[-1,0],[2,1],[-1,-2]],
-        '12': [[-1,0],[2,0],[-1,2],[2,-1]], '21': [[1,0],[-2,0],[1,-2],[-2,1]],
-        '23': [[2,0],[-1,0],[2,1],[-1,-2]], '32': [[-2,0],[1,0],[-2,-1],[1,2]],
-        '30': [[1,0],[-2,0],[1,-2],[-2,1]], '03': [[-1,0],[2,0],[-1,2],[2,-1]]
-    }
+var KICKS_J = {
+    '01': [[-1,0],[-1,1],[0,-2],[-1,-2]], '10': [[1,0],[1,-1],[0,2],[1,2]],
+    '12': [[1,0],[1,-1],[0,2],[1,2]], '21': [[-1,0],[-1,1],[0,-2],[-1,-2]],
+    '23': [[1,0],[1,1],[0,-2],[1,-2]], '32': [[-1,0],[-1,-1],[0,2],[-1,2]],
+    '30': [[-1,0],[-1,-1],[0,2],[-1,2]], '03': [[1,0],[1,1],[0,-2],[1,-2]]
+};
+var KICKS_I = {
+    '01': [[-2,0],[1,0],[-2,-1],[1,2]], '10': [[2,0],[-1,0],[2,1],[-1,-2]],
+    '12': [[-1,0],[2,0],[-1,2],[2,-1]], '21': [[1,0],[-2,0],[1,-2],[-2,1]],
+    '23': [[2,0],[-1,0],[2,1],[-1,-2]], '32': [[-2,0],[1,0],[-2,-1],[1,2]],
+    '30': [[1,0],[-2,0],[1,-2],[-2,1]], '03': [[-1,0],[2,0],[-1,2],[2,-1]]
 };
 
 function getKicks(type, from, to) {
     if (type === 'O') return [[0, 0]];
-    const key = '' + from + to;
-    const table = type === 'I' ? KICKS.I : KICKS.J;
-    return [[0, 0], ...(table[key] || [])];
+    var key = '' + from + to;
+    var table = type === 'I' ? KICKS_I : KICKS_J;
+    return [[0, 0]].concat(table[key] || []);
 }
 
-/* ── Seven-bag generator ────────────────── */
-class Bag {
-    constructor() { this._bag = []; }
-    next() {
-        if (!this._bag.length) {
-            this._bag = ['I','O','T','S','Z','J','L'];
-            for (let i = 6; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [this._bag[i], this._bag[j]] = [this._bag[j], this._bag[i]];
-            }
+/* ── Bag ────────────────────────────────── */
+function Bag() { this._bag = []; }
+Bag.prototype.next = function() {
+    if (!this._bag.length) {
+        this._bag = ['I','O','T','S','Z','J','L'];
+        for (var i = 6; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var t = this._bag[i]; this._bag[i] = this._bag[j]; this._bag[j] = t;
         }
-        return this._bag.pop();
     }
-}
+    return this._bag.pop();
+};
 
 /* ── Engine ─────────────────────────────── */
-class Engine {
-    constructor(w, h) {
-        this.W = w || 10;
-        this.H = h || 20;
-        this.board = [];
-        this.bag = new Bag();
-        this.cur = null;
-        this.next = null;
-        this.hold = null;
-        this.canHold = true;
-        this.score = 0;
-        this.level = 1;
-        this.lines = 0;
-        this.combo = 0;
-        this.gameOver = false;
-        this.dropTimer = 0;
-        this.lockTimer = 0;
-        this.locking = false;
-        this.dropMs = 1000;
-        this.lockMs = 500;
-        this.lastClear = 0;
-        this.lastWasTSpin = false;
-        this.totalPieces = 0;
-        this._init();
+function Engine(w, h) {
+    this.W = w || 10; this.H = h || 20;
+    this.board = []; this.bag = new Bag();
+    this.cur = null; this.next = null; this.hold = null; this.canHold = true;
+    this.score = 0; this.level = 1; this.lines = 0; this.combo = 0;
+    this.gameOver = false; this.dropTimer = 0; this.lockTimer = 0; this.locking = false;
+    this.dropMs = 1000; this.lockMs = 500;
+    this.lastClear = 0; this.lastWasTSpin = false; this.totalPieces = 0;
+    this.lineFlashTimer = 0; this.lineFlashRows = [];
+    this._init();
+}
+Engine.prototype._init = function() {
+    this.board = [];
+    for (var i = 0; i < this.H; i++) this.board.push(this._emptyRow());
+    this.next = this._makePiece();
+    this._spawnNext();
+};
+Engine.prototype._emptyRow = function() {
+    var r = []; for (var i = 0; i < this.W; i++) r.push(0); return r;
+};
+Engine.prototype._makePiece = function() {
+    return { type: this.bag.next(), x: 3, y: 0, rot: 0 };
+};
+Engine.prototype._spawnNext = function() {
+    this.cur = this.next; this.next = this._makePiece();
+    this.canHold = true; this.locking = false; this.lockTimer = 0;
+    this.totalPieces++;
+    if (this._collides(this.cur)) this.gameOver = true;
+};
+Engine.prototype._shape = function(p) { return SHAPES[p.type][p.rot % SHAPES[p.type].length]; };
+Engine.prototype._blocks = function(p) {
+    var s = this._shape(p), out = [];
+    for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) if (s[r][c]) out.push({x: p.x + c, y: p.y + r});
+    return out;
+};
+Engine.prototype._collides = function(p) {
+    var blocks = this._blocks(p);
+    for (var i = 0; i < blocks.length; i++) {
+        var b = blocks[i];
+        if (b.x < 0 || b.x >= this.W || b.y >= this.H) return true;
+        if (b.y >= 0 && this.board[b.y][b.x]) return true;
     }
-
-    _init() {
-        this.board = [];
-        for (let i = 0; i < this.H; i++) this.board.push(this._emptyRow());
-        this.next = this._makePiece();
-        this._spawnNext();
+    return false;
+};
+Engine.prototype.move = function(dx, dy) {
+    if (!this.cur || this.gameOver) return false;
+    this.cur.x += dx; this.cur.y += dy;
+    if (this._collides(this.cur)) { this.cur.x -= dx; this.cur.y -= dy; return false; }
+    if (dy === 0) { this.lockTimer = 0; this.locking = false; }
+    return true;
+};
+Engine.prototype.rotate = function(dir) {
+    if (!this.cur || this.gameOver) return false;
+    if (!dir) dir = 1;
+    var oldRot = this.cur.rot, shapes = SHAPES[this.cur.type];
+    var newRot = (oldRot + dir + shapes.length) % shapes.length;
+    var kicks = getKicks(this.cur.type, oldRot, newRot);
+    this.cur.rot = newRot;
+    for (var i = 0; i < kicks.length; i++) {
+        this.cur.x += kicks[i][0]; this.cur.y += kicks[i][1];
+        if (!this._collides(this.cur)) { this.lockTimer = 0; this.locking = false; return true; }
+        this.cur.x -= kicks[i][0]; this.cur.y -= kicks[i][1];
     }
-
-    _emptyRow() {
-        const r = [];
-        for (let i = 0; i < this.W; i++) r.push(0);
-        return r;
+    this.cur.rot = oldRot; return false;
+};
+Engine.prototype.hardDrop = function() {
+    if (!this.cur || this.gameOver) return 0;
+    var d = 0; while (this.move(0, 1)) d++;
+    this.score += d * 2; this._lock(); return d;
+};
+Engine.prototype.softDrop = function() { return this.move(0, 1); };
+Engine.prototype.holdPiece = function() {
+    if (!this.canHold || !this.cur || this.gameOver) return false;
+    var t = this.cur.type;
+    if (this.hold) { var tmp = this.hold; this.hold = t; this.cur = {type: tmp, x: 3, y: 0, rot: 0}; }
+    else { this.hold = t; this._spawnNext(); }
+    this.canHold = false; return true;
+};
+Engine.prototype.ghost = function() {
+    if (!this.cur) return null;
+    var g = {type: this.cur.type, x: this.cur.x, y: this.cur.y, rot: this.cur.rot};
+    while (!this._collides(g)) g.y++; g.y--; return g;
+};
+Engine.prototype._lock = function() {
+    if (!this.cur) return;
+    var color = COLORS[this.cur.type], blocks = this._blocks(this.cur);
+    for (var i = 0; i < blocks.length; i++) {
+        var b = blocks[i];
+        if (b.y >= 0 && b.y < this.H && b.x >= 0 && b.x < this.W) this.board[b.y][b.x] = color;
     }
-
-    _makePiece() {
-        return { type: this.bag.next(), x: 3, y: 0, rot: 0 };
+    // T-Spin
+    var tSpin = false;
+    if (this.cur.type === 'T') {
+        var cx = this.cur.x, cy = this.cur.y;
+        var corners = [[cx, cy], [cx+2, cy], [cx, cy+2], [cx+2, cy+2]];
+        var occ = 0;
+        for (var i = 0; i < 4; i++) {
+            var px = corners[i][0], py = corners[i][1];
+            if (px < 0 || px >= this.W || py < 0 || py >= this.H) occ++;
+            else if (py >= 0 && this.board[py] && this.board[py][px]) occ++;
+        }
+        tSpin = occ >= 3;
     }
-
-    _spawnNext() {
-        this.cur = this.next;
-        this.next = this._makePiece();
-        this.canHold = true;
-        this.locking = false;
-        this.lockTimer = 0;
-        this.totalPieces++;
+    this.lastWasTSpin = tSpin;
+    var cleared = this._clearLines();
+    this.lastClear = cleared;
+    this._calcScore(cleared, tSpin);
+    this._spawnNext();
+};
+Engine.prototype._clearLines = function() {
+    var cleared = 0, flashRows = [];
+    for (var y = this.H - 1; y >= 0; y--) {
+        var full = true;
+        for (var x = 0; x < this.W; x++) { if (!this.board[y][x]) { full = false; break; } }
+        if (full) {
+            flashRows.push(y);
+            this.board.splice(y, 1); this.board.unshift(this._emptyRow());
+            cleared++; y++;
+        }
+    }
+    if (cleared > 0) { this.lineFlashTimer = 300; this.lineFlashRows = flashRows; }
+    if (cleared === 0) { this.combo = 0; return 0; }
+    this.lines += cleared; this.combo++; this._updateLevel();
+    return cleared;
+};
+Engine.prototype._calcScore = function(lines, tSpin) {
+    var base = 0;
+    if (tSpin) { base = [0, 800, 1200, 1600][lines] || 0; }
+    else { base = [0, 100, 300, 500, 800][lines] || 0; }
+    if (this.combo > 1) base += 50 * (this.combo - 1);
+    this.score += base * this.level;
+};
+Engine.prototype._updateLevel = function() {
+    var nl = Math.floor(this.lines / 10) + 1;
+    if (nl > this.level) { this.level = nl; this.dropMs = Math.max(50, 1000 - (this.level - 1) * 50); }
+};
+Engine.prototype.attackLines = function() {
+    var l = this.lastClear, atk = 0;
+    if (this.lastWasTSpin) { atk = [0, 2, 4, 6][l] || 0; }
+    else { atk = [0, 0, 1, 2, 4][l] || 0; }
+    if (this.combo > 1) atk += Math.min(this.combo - 1, 4);
+    return atk;
+};
+Engine.prototype.receiveGarbage = function(n) {
+    if (n <= 0) return;
+    for (var i = 0; i < n; i++) this.board.shift();
+    for (var i = 0; i < n; i++) {
+        var row = [], hole = Math.floor(Math.random() * this.W);
+        for (var x = 0; x < this.W; x++) row.push(x === hole ? 0 : GARBAGE_COLOR);
+        this.board.push(row);
+    }
+    if (this.cur && this._collides(this.cur)) {
+        this.cur.y -= n;
         if (this._collides(this.cur)) this.gameOver = true;
     }
-
-    _shape(p) {
-        const shapes = SHAPES[p.type];
-        return shapes[p.rot % shapes.length];
+};
+Engine.prototype.update = function(dt) {
+    if (this.gameOver || !this.cur) return;
+    if (this.lineFlashTimer > 0) this.lineFlashTimer -= dt;
+    this.dropTimer += dt;
+    if (this.dropTimer >= this.dropMs) {
+        if (!this.move(0, 1)) { if (!this.locking) { this.locking = true; this.lockTimer = 0; } }
+        this.dropTimer = 0;
     }
+    if (this.locking) { this.lockTimer += dt; if (this.lockTimer >= this.lockMs) this._lock(); }
+};
+Engine.prototype.reset = function() {
+    this.score = 0; this.level = 1; this.lines = 0; this.combo = 0;
+    this.gameOver = false; this.dropTimer = 0; this.lockTimer = 0;
+    this.locking = false; this.dropMs = 1000; this.lastClear = 0;
+    this.lastWasTSpin = false; this.totalPieces = 0;
+    this.hold = null; this.canHold = true; this.lineFlashTimer = 0;
+    this.bag = new Bag(); this._init();
+};
 
-    _blocks(p) {
-        const s = this._shape(p);
-        const out = [];
-        for (let r = 0; r < 4; r++)
-            for (let c = 0; c < 4; c++)
-                if (s[r][c]) out.push({ x: p.x + c, y: p.y + r });
-        return out;
-    }
-
-    _collides(p) {
-        const blocks = this._blocks(p);
-        for (let i = 0; i < blocks.length; i++) {
-            const b = blocks[i];
-            if (b.x < 0 || b.x >= this.W || b.y >= this.H) return true;
-            if (b.y >= 0 && this.board[b.y][b.x]) return true;
-        }
-        return false;
-    }
-
-    move(dx, dy) {
-        if (!this.cur || this.gameOver) return false;
-        this.cur.x += dx;
-        this.cur.y += dy;
-        if (this._collides(this.cur)) {
-            this.cur.x -= dx;
-            this.cur.y -= dy;
-            return false;
-        }
-        if (dy === 0) { this.lockTimer = 0; this.locking = false; }
-        return true;
-    }
-
-    rotate(dir) {
-        if (!this.cur || this.gameOver) return false;
-        if (!dir) dir = 1;
-        const oldRot = this.cur.rot;
-        const shapes = SHAPES[this.cur.type];
-        const newRot = (oldRot + dir + shapes.length) % shapes.length;
-        const kicks = getKicks(this.cur.type, oldRot, newRot);
-        this.cur.rot = newRot;
-        for (let i = 0; i < kicks.length; i++) {
-            this.cur.x += kicks[i][0];
-            this.cur.y += kicks[i][1];
-            if (!this._collides(this.cur)) {
-                this.lockTimer = 0;
-                this.locking = false;
-                return true;
-            }
-            this.cur.x -= kicks[i][0];
-            this.cur.y -= kicks[i][1];
-        }
-        this.cur.rot = oldRot;
-        return false;
-    }
-
-    hardDrop() {
-        if (!this.cur || this.gameOver) return 0;
-        let d = 0;
-        while (this.move(0, 1)) d++;
-        this.score += d * 2;
-        this._lock();
-        return d;
-    }
-
-    softDrop() {
-        return this.move(0, 1);
-    }
-
-    holdPiece() {
-        if (!this.canHold || !this.cur || this.gameOver) return false;
-        const t = this.cur.type;
-        if (this.hold) {
-            const tmp = this.hold;
-            this.hold = t;
-            this.cur = { type: tmp, x: 3, y: 0, rot: 0 };
-        } else {
-            this.hold = t;
-            this._spawnNext();
-        }
-        this.canHold = false;
-        return true;
-    }
-
-    ghost() {
-        if (!this.cur) return null;
-        const g = { type: this.cur.type, x: this.cur.x, y: this.cur.y, rot: this.cur.rot };
-        while (!this._collides(g)) g.y++;
-        g.y--;
-        return g;
-    }
-
-    _lock() {
-        if (!this.cur) return;
-        const color = COLORS[this.cur.type];
-        const blocks = this._blocks(this.cur);
-        for (let i = 0; i < blocks.length; i++) {
-            const b = blocks[i];
-            if (b.y >= 0 && b.y < this.H && b.x >= 0 && b.x < this.W) {
-                this.board[b.y][b.x] = color;
-            }
-        }
-        // T-Spin check
-        let tSpin = false;
-        if (this.cur.type === 'T') {
-            const cx = this.cur.x, cy = this.cur.y;
-            const corners = [[cx, cy], [cx + 2, cy], [cx, cy + 2], [cx + 2, cy + 2]];
-            let occ = 0;
-            for (let i = 0; i < 4; i++) {
-                const px = corners[i][0], py = corners[i][1];
-                if (px < 0 || px >= this.W || py < 0 || py >= this.H) occ++;
-                else if (py >= 0 && this.board[py] && this.board[py][px]) occ++;
-            }
-            tSpin = occ >= 3;
-        }
-        this.lastWasTSpin = tSpin;
-        const cleared = this._clearLines();
-        this.lastClear = cleared;
-        this._calcScore(cleared, tSpin);
-        this._spawnNext();
-    }
-
-    _clearLines() {
-        let cleared = 0;
-        for (let y = this.H - 1; y >= 0; y--) {
-            let full = true;
-            for (let x = 0; x < this.W; x++) {
-                if (!this.board[y][x]) { full = false; break; }
-            }
-            if (full) {
-                this.board.splice(y, 1);
-                this.board.unshift(this._emptyRow());
-                cleared++;
-                y++;
-            }
-        }
-        if (cleared === 0) { this.combo = 0; return 0; }
-        this.lines += cleared;
-        this.combo++;
-        this._updateLevel();
-        return cleared;
-    }
-
-    _calcScore(lines, tSpin) {
-        let base = 0;
-        if (tSpin) {
-            base = [0, 800, 1200, 1600][lines] || 0;
-        } else {
-            base = [0, 100, 300, 500, 800][lines] || 0;
-        }
-        if (this.combo > 1) base += 50 * (this.combo - 1);
-        let empty = true;
-        for (let y = 0; y < this.H && empty; y++)
-            for (let x = 0; x < this.W && empty; x++)
-                if (this.board[y][x]) empty = false;
-        if (empty) base *= 10;
-        this.score += base * this.level;
-    }
-
-    _updateLevel() {
-        const nl = Math.floor(this.lines / 10) + 1;
-        if (nl > this.level) {
-            this.level = nl;
-            this.dropMs = Math.max(50, 1000 - (this.level - 1) * 50);
-        }
-    }
-
-    attackLines() {
-        const l = this.lastClear;
-        let atk = 0;
-        if (this.lastWasTSpin) {
-            atk = [0, 2, 4, 6][l] || 0;
-        } else {
-            atk = [0, 0, 1, 2, 4][l] || 0;
-        }
-        if (this.combo > 1) atk += Math.min(this.combo - 1, 4);
-        return atk;
-    }
-
-    receiveGarbage(n) {
-        if (n <= 0) return;
-        // Remove top rows
-        for (let i = 0; i < n; i++) this.board.shift();
-        // Add garbage at bottom
-        for (let i = 0; i < n; i++) {
-            const row = [];
-            const hole = Math.floor(Math.random() * this.W);
-            for (let x = 0; x < this.W; x++) row.push(x === hole ? 0 : '#666');
-            this.board.push(row);
-        }
-        // If current piece now overlaps, push it up
-        if (this.cur && this._collides(this.cur)) {
-            this.cur.y -= n;
-            if (this._collides(this.cur)) {
-                this.gameOver = true;
-            }
-        }
-    }
-
-    update(dt) {
-        if (this.gameOver || !this.cur) return;
-        this.dropTimer += dt;
-        if (this.dropTimer >= this.dropMs) {
-            if (!this.move(0, 1)) {
-                if (!this.locking) { this.locking = true; this.lockTimer = 0; }
-            }
-            this.dropTimer = 0;
-        }
-        if (this.locking) {
-            this.lockTimer += dt;
-            if (this.lockTimer >= this.lockMs) this._lock();
-        }
-    }
-
-    reset() {
-        this.score = 0; this.level = 1; this.lines = 0; this.combo = 0;
-        this.gameOver = false; this.dropTimer = 0; this.lockTimer = 0;
-        this.locking = false; this.dropMs = 1000; this.lastClear = 0;
-        this.lastWasTSpin = false; this.totalPieces = 0;
-        this.hold = null; this.canHold = true;
-        this.bag = new Bag();
-        this._init();
-    }
+/* ── AI (slower, easier) ────────────────── */
+function AI(diff) {
+    this.diff = diff || 'easy';
+    this.engine = new Engine();
+    this.alive = true; this.timer = 0;
+    var delays = { easy: 2500, medium: 1200, hard: 600, expert: 300 };
+    this.baseDelay = delays[this.diff] || 2500;
+    this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
+    this.errRate = { easy: 0.30, medium: 0.15, hard: 0.05, expert: 0.02 }[this.diff] || 0.30;
 }
-
-/* ── AI Player (much easier) ────────────── */
-class AI {
-    constructor(diff) {
-        this.diff = diff || 'easy';
-        this.engine = new Engine();
-        this.alive = true;
-        this.timer = 0;
-        // Much slower AI - gives human player a chance
-        const delays = { easy: 2500, medium: 1200, hard: 600, expert: 300 };
-        this.baseDelay = delays[this.diff] || 2500;
-        this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
-        this.errRate = { easy: 0.30, medium: 0.15, hard: 0.05, expert: 0.02 }[this.diff] || 0.30;
-        this.weights = {
-            easy:   { h: -0.3, l: 0.5, ho: -0.2, b: -0.05, a: -0.05 },
-            medium: { h: -0.6, l: 0.9, ho: -0.4, b: -0.15, a: -0.15 },
-            hard:   { h: -0.9, l: 1.2, ho: -0.7, b: -0.3, a: -0.3 },
-            expert: { h: -1.0, l: 1.5, ho: -1.0, b: -0.4, a: -0.4 }
-        }[this.diff] || { h: -0.3, l: 0.5, ho: -0.2, b: -0.05, a: -0.05 };
+AI.prototype.update = function(dt) {
+    if (!this.alive || this.engine.gameOver) { this.alive = false; return; }
+    this.engine.update(dt);
+    this.timer += dt;
+    if (this.timer >= this.delay) { this._decide(); this.timer = 0; this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5; }
+};
+AI.prototype._decide = function() {
+    if (!this.engine.cur) return;
+    if (Math.random() < this.errRate) { this._random(); return; }
+    var best = this._bestMove();
+    if (best) {
+        var c = this.engine.cur;
+        while (c.rot !== best.rot) this.engine.rotate(1);
+        var dx = best.x - c.x;
+        for (var i = 0; i < Math.abs(dx); i++) this.engine.move(dx > 0 ? 1 : -1, 0);
+        this.engine.hardDrop();
     }
-
-    update(dt) {
-        if (!this.alive || this.engine.gameOver) { this.alive = false; return; }
-        this.engine.update(dt);
-        this.timer += dt;
-        if (this.timer >= this.delay) {
-            this._decide();
-            this.timer = 0;
-            this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
+};
+AI.prototype._bestMove = function() {
+    var p = this.engine.cur; if (!p) return null;
+    var best = null, bestS = -Infinity, nr = SHAPES[p.type].length;
+    for (var r = 0; r < nr; r++) {
+        for (var x = -2; x < this.engine.W + 2; x++) {
+            var t = {type: p.type, x: x, y: 0, rot: r};
+            while (!this.engine._collides(t)) t.y++; t.y--;
+            if (this.engine._collides(t)) continue;
+            var s = this._eval(t);
+            if (s > bestS) { bestS = s; best = {x: t.x, rot: r}; }
         }
     }
-
-    _decide() {
-        if (!this.engine.cur) return;
-        if (Math.random() < this.errRate) { this._randomMove(); return; }
-        const best = this._bestMove();
-        if (best) {
-            const cur = this.engine.cur;
-            while (cur.rot !== best.rot) this.engine.rotate(1);
-            const dx = best.x - cur.x;
-            if (dx > 0) { for (let i = 0; i < dx; i++) this.engine.move(1, 0); }
-            if (dx < 0) { for (let i = 0; i < -dx; i++) this.engine.move(-1, 0); }
-            this.engine.hardDrop();
-        }
+    return best;
+};
+AI.prototype._eval = function(p) {
+    var eng = this.engine, tmp = [];
+    for (var y = 0; y < eng.H; y++) { var row = []; for (var x = 0; x < eng.W; x++) row.push(eng.board[y][x]); tmp.push(row); }
+    var blocks = eng._blocks(p);
+    for (var i = 0; i < blocks.length; i++) { var b = blocks[i]; if (b.y >= 0 && b.y < eng.H) tmp[b.y][b.x] = 1; }
+    var cl = 0;
+    for (var y = eng.H - 1; y >= 0; y--) {
+        var full = true;
+        for (var x = 0; x < eng.W; x++) { if (!tmp[y][x]) { full = false; break; } }
+        if (full) { tmp.splice(y, 1); tmp.unshift(Array(eng.W).fill(0)); cl++; y++; }
     }
-
-    _bestMove() {
-        const p = this.engine.cur;
-        if (!p) return null;
-        let best = null, bestScore = -Infinity;
-        const numRotations = SHAPES[p.type].length;
-        for (let r = 0; r < numRotations; r++) {
-            for (let x = -2; x < this.engine.W + 2; x++) {
-                const test = { type: p.type, x: x, y: 0, rot: r };
-                while (!this.engine._collides(test)) test.y++;
-                test.y--;
-                if (this.engine._collides(test)) continue;
-                const score = this._evaluate(test);
-                if (score > bestScore) { bestScore = score; best = { x: test.x, rot: r }; }
-            }
+    var maxH = 0, holes = 0, heights = [];
+    for (var x = 0; x < eng.W; x++) {
+        var h = 0, found = false;
+        for (var y = 0; y < eng.H; y++) {
+            if (tmp[y][x]) { if (!found) { h = eng.H - y; found = true; } }
+            else if (found) holes++;
         }
-        return best;
+        heights.push(h); if (h > maxH) maxH = h;
     }
+    var bump = 0;
+    for (var i = 0; i < heights.length - 1; i++) bump += Math.abs(heights[i] - heights[i + 1]);
+    return cl * cl * 2 - maxH * 0.5 - holes * 0.8 - bump * 0.2;
+};
+AI.prototype._random = function() {
+    var r = Math.random();
+    if (r < 0.2) this.engine.move(-1, 0);
+    else if (r < 0.4) this.engine.move(1, 0);
+    else if (r < 0.6) this.engine.rotate(1);
+    else if (r < 0.85) this.engine.hardDrop();
+    else this.engine.holdPiece();
+};
+AI.prototype.reset = function() { this.engine.reset(); this.alive = true; this.timer = 0; };
 
-    _evaluate(p) {
-        const eng = this.engine;
-        // Copy board
-        const tmp = [];
-        for (let y = 0; y < eng.H; y++) {
-            const row = [];
-            for (let x = 0; x < eng.W; x++) row.push(eng.board[y][x]);
-            tmp.push(row);
-        }
-        // Place piece
-        const blocks = eng._blocks(p);
-        for (let i = 0; i < blocks.length; i++) {
-            const b = blocks[i];
-            if (b.y >= 0 && b.y < eng.H && b.x >= 0 && b.x < eng.W) tmp[b.y][b.x] = 1;
-        }
-        // Count and clear lines
-        let cl = 0;
-        for (let y = eng.H - 1; y >= 0; y--) {
-            let full = true;
-            for (let x = 0; x < eng.W; x++) { if (!tmp[y][x]) { full = false; break; } }
-            if (full) { tmp.splice(y, 1); tmp.unshift(Array(eng.W).fill(0)); cl++; y++; }
-        }
-        // Metrics
-        const heights = [];
-        let maxH = 0, holes = 0, agg = 0;
-        for (let x = 0; x < eng.W; x++) {
-            let h = 0, found = false;
-            for (let y = 0; y < eng.H; y++) {
-                if (tmp[y][x]) { if (!found) { h = eng.H - y; found = true; } }
-                else if (found) holes++;
-            }
-            heights.push(h); if (h > maxH) maxH = h; agg += h;
-        }
-        let bump = 0;
-        for (let i = 0; i < heights.length - 1; i++) bump += Math.abs(heights[i] - heights[i + 1]);
-        const w = this.weights;
-        return w.l * cl * cl + w.h * maxH + w.ho * holes + w.b * bump + w.a * agg;
-    }
-
-    _randomMove() {
-        const r = Math.random();
-        if (r < 0.2) this.engine.move(-1, 0);
-        else if (r < 0.4) this.engine.move(1, 0);
-        else if (r < 0.6) this.engine.rotate(1);
-        else if (r < 0.85) this.engine.hardDrop();
-        else this.engine.holdPiece();
-    }
-
-    reset() {
-        this.engine.reset();
-        this.alive = true;
-        this.timer = 0;
-        this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
-    }
+/* ── Battle ─────────────────────────────── */
+function Battle() {
+    this.players = []; this.human = null; this.ais = [];
+    this.started = false; this.ended = false; this.rank = 99; this.strategy = 'random';
 }
-
-/* ── Battle System ──────────────────────── */
-class Battle {
-    constructor() {
-        this.players = [];
-        this.human = null;
-        this.ais = [];
-        this.started = false;
-        this.ended = false;
-        this.rank = 99;
-        this.strategy = 'random';
+Battle.prototype.init = function(count) {
+    this.players = []; this.rank = (count || 50) + 1; this.ended = false;
+    var h = { id:'human', name:'Player', isAI:false, engine:new Engine(), alive:true, rank:null, ko:0, badges:0, atkQ:[], lastLines:0, _lastGT:0 };
+    this.players.push(h); this.human = h;
+    this.ais = [];
+    var diffs = ['easy','easy','easy','medium','medium','hard'];
+    for (var i = 0; i < (count || 50); i++) {
+        var diff = diffs[Math.floor(Math.random() * diffs.length)];
+        var ai = new AI(diff);
+        var p = { id:'ai_'+i, name:'AI '+(i+1), isAI:true, engine:ai.engine, ai:ai, alive:true, rank:null, ko:0, badges:0, atkQ:[], lastLines:0, diff:diff, _lastGT:0 };
+        this.players.push(p); this.ais.push(p);
     }
-
-    init(count) {
-        this.players = [];
-        this.rank = (count || 98) + 1;
-        this.ended = false;
-        // Human player
-        const h = {
-            id: 'human', name: 'Player', isAI: false,
-            engine: new Engine(), alive: true, rank: null,
-            ko: 0, badges: 0, atkQ: [], lastLines: 0, _lastGarbageTime: 0
-        };
-        this.players.push(h);
-        this.human = h;
-        // AI players
-        this.ais = [];
-        const diffs = ['easy', 'easy', 'easy', 'medium', 'medium', 'hard'];
-        for (let i = 0; i < (count || 98); i++) {
-            const diff = diffs[Math.floor(Math.random() * diffs.length)];
-            const ai = new AI(diff);
-            const p = {
-                id: 'ai_' + i, name: 'AI ' + (i + 1), isAI: true,
-                engine: ai.engine, ai: ai, alive: true, rank: null,
-                ko: 0, badges: 0, atkQ: [], lastLines: 0, diff: diff, _lastGarbageTime: 0
-            };
-            this.players.push(p);
-            this.ais.push(p);
-        }
+};
+Battle.prototype.start = function() { this.init(50); this.started = true; };
+Battle.prototype.update = function(dt) {
+    if (!this.started || this.ended) return;
+    for (var i = 0; i < this.players.length; i++) {
+        var p = this.players[i]; if (!p.alive) continue;
+        var prev = p.engine.lines;
+        if (p.isAI) { p.ai.update(dt); if (!p.ai.alive || p.engine.gameOver) this._elim(p); }
+        else { p.engine.update(dt); if (p.engine.gameOver) this._elim(p); }
+        p.lastLines = p.engine.lines - prev;
     }
-
-    start() {
-        this.init(98);
-        this.started = true;
-    }
-
-    update(dt) {
-        if (!this.started || this.ended) return;
-        for (let i = 0; i < this.players.length; i++) {
-            const p = this.players[i];
-            if (!p.alive) continue;
-            const prev = p.engine.lines;
-            if (p.isAI) {
-                p.ai.update(dt);
-                if (!p.ai.alive || p.engine.gameOver) this._eliminate(p);
-            } else {
-                p.engine.update(dt);
-                if (p.engine.gameOver) this._eliminate(p);
-            }
-            p.lastLines = p.engine.lines - prev;
-        }
-        this._processAttacks();
-        this._checkEnd();
-    }
-
-    _processAttacks() {
-        var now = Date.now ? Date.now() : 0;
-        for (var i = 0; i < this.players.length; i++) {
-            var p = this.players[i];
-            if (!p.alive || p.lastLines <= 0) continue;
-            // Only 2+ line clears or T-Spins send garbage
-            if (p.lastLines < 2 && !p.engine.lastWasTSpin) continue;
-            var atk = p.engine.attackLines();
-            if (atk <= 0) continue;
-            // Random chance to send (reduces spam with many AIs)
-            if (Math.random() > 0.4) continue;
-            var targets = this._pickTargets(p.id, 1);
-            for (var j = 0; j < targets.length; j++) {
-                var t = targets[j];
-                if (!t.alive) continue;
-                // Rate limit: max 1 garbage per 2 seconds per target
-                if (t._lastGTime && now - t._lastGTime < 2000) continue;
-                t._lastGTime = now;
-                t.atkQ.push({ lines: 1, from: p.id });
-                t.engine.receiveGarbage(1);
-                if (t.engine.gameOver) this._eliminate(t, p.id);
-            }
+    this._processAttacks(); this._checkEnd();
+};
+Battle.prototype._processAttacks = function() {
+    for (var i = 0; i < this.players.length; i++) {
+        var p = this.players[i]; if (!p.alive || p.lastLines < 2) continue;
+        if (p.lastLines < 2 && !p.engine.lastWasTSpin) continue;
+        if (Math.random() > 0.35) continue;
+        var targets = this._pickTargets(p.id);
+        for (var j = 0; j < targets.length; j++) {
+            var t = targets[j]; if (!t.alive) continue;
+            if (t._lastGT && Date.now() - t._lastGT < 2500) continue;
+            t._lastGT = Date.now(); t.atkQ.push({lines: 1, from: p.id});
+            t.engine.receiveGarbage(1);
+            if (t.engine.gameOver) this._elim(t, p.id);
         }
     }
-
-    _pickTargets(srcId, atk) {
-        const alive = [];
-        for (let i = 0; i < this.players.length; i++) {
-            if (this.players[i].alive && this.players[i].id !== srcId) alive.push(this.players[i]);
-        }
-        if (!alive.length) return [];
-        const n = Math.min(4, alive.length);
-        if (this.strategy === 'ko') {
-            const vuln = [];
-            for (let i = 0; i < alive.length; i++) {
-                if (this._height(alive[i]) > 14) vuln.push(alive[i]);
-            }
-            vuln.sort(function(a, b) { return this._height(b) - this._height(a); }.bind(this));
-            return vuln.length ? vuln.slice(0, n) : this._randN(alive, n);
-        }
-        if (this.strategy === 'badge') {
-            const sorted = alive.slice().sort(function(a, b) { return b.badges - a.badges; });
-            return sorted.slice(0, n);
-        }
-        return this._randN(alive, n);
+};
+Battle.prototype._pickTargets = function(srcId) {
+    var alive = [];
+    for (var i = 0; i < this.players.length; i++) if (this.players[i].alive && this.players[i].id !== srcId) alive.push(this.players[i]);
+    if (!alive.length) return [];
+    var n = Math.min(4, alive.length), s = alive.slice();
+    for (var i = s.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i+1)); var t = s[i]; s[i] = s[j]; s[j] = t; }
+    return s.slice(0, n);
+};
+Battle.prototype._height = function(p) {
+    var b = p.engine.board;
+    for (var y = 0; y < b.length; y++) for (var x = 0; x < b[y].length; x++) if (b[y][x]) return b.length - y;
+    return 0;
+};
+Battle.prototype._elim = function(p, kid) {
+    if (!p.alive) return; p.alive = false; p.rank = this.rank--;
+    if (kid) { for (var i = 0; i < this.players.length; i++) { if (this.players[i].id === kid && this.players[i].alive) { this.players[i].ko++; this.players[i].badges += p.badges + 1; break; } } }
+};
+Battle.prototype._checkEnd = function() {
+    var c = 0, last = null;
+    for (var i = 0; i < this.players.length; i++) { if (this.players[i].alive) { c++; last = this.players[i]; } }
+    if (c <= 1) { this.ended = true; if (last) last.rank = 1; }
+};
+Battle.prototype.getOpponents = function() {
+    var out = [], limit = Math.min(this.ais.length, 40);
+    for (var i = 0; i < limit; i++) {
+        var p = this.ais[i];
+        out.push({ id:p.id, rank:p.rank, alive:p.alive, height:this._height(p), engine:p.engine });
     }
+    return out;
+};
 
-    _randN(arr, n) {
-        const s = arr.slice();
-        for (let i = s.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            const tmp = s[i]; s[i] = s[j]; s[j] = tmp;
-        }
-        return s.slice(0, n);
-    }
-
-    _height(p) {
-        const b = p.engine.board;
-        for (let y = 0; y < b.length; y++) {
-            for (let x = 0; x < b[y].length; x++) {
-                if (b[y][x]) return b.length - y;
-            }
-        }
-        return 0;
-    }
-
-    _eliminate(p, killerId) {
-        if (!p.alive) return;
-        p.alive = false;
-        p.rank = this.rank--;
-        if (killerId) {
-            for (let i = 0; i < this.players.length; i++) {
-                if (this.players[i].id === killerId && this.players[i].alive) {
-                    this.players[i].ko++;
-                    this.players[i].badges += p.badges + 1;
-                    break;
-                }
-            }
-        }
-    }
-
-    _checkEnd() {
-        let count = 0, last = null;
-        for (let i = 0; i < this.players.length; i++) {
-            if (this.players[i].alive) { count++; last = this.players[i]; }
-        }
-        if (count <= 1) {
-            this.ended = true;
-            if (last) last.rank = 1;
-        }
-    }
-
-    getOpponents() {
-        const out = [];
-        const limit = Math.min(this.ais.length, 40);
-        for (let i = 0; i < limit; i++) {
-            const p = this.ais[i];
-            out.push({
-                id: p.id, rank: p.rank, alive: p.alive,
-                height: this._height(p), targeting: false, targeted: false
-            });
-        }
-        return out;
-    }
+/* ── Main Renderer ──────────────────────── */
+function Renderer(cv, nCv, hCv) {
+    this.cv = cv; this.ctx = cv.getContext('2d');
+    this.nCv = nCv; this.nCtx = nCv.getContext('2d');
+    this.hCv = hCv; this.hCtx = hCv.getContext('2d');
+    this.cell = 28; this.effects = []; this.tspinFlash = 0;
 }
-
-/* ── Renderer ───────────────────────────── */
-class Renderer {
-    constructor(cv, nCv, hCv) {
-        this.cv = cv;
-        this.ctx = cv.getContext('2d');
-        this.nCv = nCv;
-        this.nCtx = nCv.getContext('2d');
-        this.hCv = hCv;
-        this.hCtx = hCv.getContext('2d');
-        this.cell = 28;
-        this.effects = [];
-    }
-
-    resize(eng) {
-        const wrapper = this.cv.parentElement;
-        const maxW = Math.min(300, wrapper ? wrapper.clientWidth : 300);
-        const maxH = Math.min(620, window.innerHeight - 200);
-        this.cell = Math.floor(Math.min(maxW / eng.W, maxH / eng.H));
-        if (this.cell < 12) this.cell = 12;
-        this.cv.width = eng.W * this.cell;
-        this.cv.height = eng.H * this.cell;
-    }
-
-    render(eng) {
-        const ctx = this.ctx, c = this.cell, W = eng.W, H = eng.H;
-        ctx.clearRect(0, 0, this.cv.width, this.cv.height);
-        // Grid
-        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= W; x++) { ctx.beginPath(); ctx.moveTo(x*c, 0); ctx.lineTo(x*c, H*c); ctx.stroke(); }
-        for (let y = 0; y <= H; y++) { ctx.beginPath(); ctx.moveTo(0, y*c); ctx.lineTo(W*c, y*c); ctx.stroke(); }
-        // Placed blocks
-        for (let y = 0; y < H; y++)
-            for (let x = 0; x < W; x++)
-                if (eng.board[y][x]) this._drawCell(ctx, x, y, eng.board[y][x]);
-        // Ghost
-        if (eng.cur) {
-            const g = eng.ghost();
-            if (g) {
-                const gb = eng._blocks(g);
-                for (let i = 0; i < gb.length; i++)
-                    if (gb[i].y >= 0) this._drawCell(ctx, gb[i].x, gb[i].y, COLORS[g.type], 0.15);
-            }
+Renderer.prototype.resize = function(eng) {
+    var par = this.cv.parentElement;
+    var maxW = Math.min(340, par ? par.clientWidth : 340);
+    var maxH = window.innerHeight - 160;
+    this.cell = Math.floor(Math.min(maxW / eng.W, maxH / eng.H));
+    if (this.cell < 14) this.cell = 14;
+    this.cv.width = eng.W * this.cell;
+    this.cv.height = eng.H * this.cell;
+};
+Renderer.prototype.render = function(eng) {
+    var ctx = this.ctx, c = this.cell, W = eng.W, H = eng.H;
+    ctx.clearRect(0, 0, this.cv.width, this.cv.height);
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.025)'; ctx.lineWidth = 1;
+    for (var x = 0; x <= W; x++) { ctx.beginPath(); ctx.moveTo(x*c, 0); ctx.lineTo(x*c, H*c); ctx.stroke(); }
+    for (var y = 0; y <= H; y++) { ctx.beginPath(); ctx.moveTo(0, y*c); ctx.lineTo(W*c, y*c); ctx.stroke(); }
+    // Placed blocks
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) if (eng.board[y][x]) this._cell(ctx, x, y, eng.board[y][x]);
+    // Line flash
+    if (eng.lineFlashTimer > 0) {
+        var alpha = eng.lineFlashTimer / 300;
+        ctx.save(); ctx.globalAlpha = alpha * 0.7; ctx.fillStyle = '#fff';
+        for (var i = 0; i < eng.lineFlashRows.length; i++) {
+            ctx.fillRect(0, eng.lineFlashRows[i] * c, W * c, c);
         }
-        // Current piece
-        if (eng.cur) {
-            const color = COLORS[eng.cur.type];
-            const blocks = eng._blocks(eng.cur);
-            for (let i = 0; i < blocks.length; i++)
-                if (blocks[i].y >= 0) this._drawCell(ctx, blocks[i].x, blocks[i].y, color);
-        }
-        // Effects
-        const now = Date.now();
-        const kept = [];
-        for (let i = 0; i < this.effects.length; i++) {
-            const e = this.effects[i];
-            const age = now - e.t;
-            if (age > e.d) continue;
-            kept.push(e);
-            ctx.save();
-            ctx.globalAlpha = 1 - age / e.d;
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 18px -apple-system, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('+' + e.v, this.cv.width / 2, 50 - (age / e.d) * 30);
-            ctx.restore();
-        }
-        this.effects = kept;
-    }
-
-    _drawCell(ctx, x, y, color, alpha) {
-        const c = this.cell;
-        const px = x * c, py = y * c;
-        const inset = 1;
-        const r = Math.min(5, c / 4);
-        ctx.save();
-        if (alpha) ctx.globalAlpha = alpha;
-        // Main fill with rounded rect
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(px + r + inset, py + inset);
-        ctx.lineTo(px + c - r - inset, py + inset);
-        ctx.quadraticCurveTo(px + c - inset, py + inset, px + c - inset, py + r + inset);
-        ctx.lineTo(px + c - inset, py + c - r - inset);
-        ctx.quadraticCurveTo(px + c - inset, py + c - inset, px + c - r - inset, py + c - inset);
-        ctx.lineTo(px + r + inset, py + c - inset);
-        ctx.quadraticCurveTo(px + inset, py + c - inset, px + inset, py + c - r - inset);
-        ctx.lineTo(px + inset, py + r + inset);
-        ctx.quadraticCurveTo(px + inset, py + inset, px + r + inset, py + inset);
-        ctx.closePath();
-        ctx.fill();
-        // Glass highlight (top)
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
-        ctx.beginPath();
-        ctx.moveTo(px + r + inset, py + inset);
-        ctx.lineTo(px + c - r - inset, py + inset);
-        ctx.quadraticCurveTo(px + c - inset, py + inset, px + c - inset, py + r + inset);
-        ctx.lineTo(px + c - inset, py + c * 0.4);
-        ctx.lineTo(px + inset, py + c * 0.4);
-        ctx.lineTo(px + inset, py + r + inset);
-        ctx.quadraticCurveTo(px + inset, py + inset, px + r + inset, py + inset);
-        ctx.closePath();
-        ctx.fill();
-        // Subtle inner shadow (bottom-right)
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-        ctx.fillRect(px + c * 0.5, py + c - inset - 2, c * 0.5 - inset, 2);
-        ctx.fillRect(px + c - inset - 2, py + c * 0.5, 2, c * 0.5 - inset);
         ctx.restore();
     }
-
-    renderPreview(ctx, cvs, piece) {
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(0, 0, cvs.width, cvs.height);
-        if (!piece) return;
-        const shape = SHAPES[piece.type][0];
-        const cs = Math.min(cvs.width / 5, cvs.height / 5);
-        const ox = (cvs.width - 4 * cs) / 2;
-        const oy = (cvs.height - 4 * cs) / 2;
-        const color = COLORS[piece.type];
-        for (let r = 0; r < 4; r++)
-            for (let c2 = 0; c2 < 4; c2++)
-                if (shape[r][c2]) {
-                    const px = ox + c2 * cs, py = oy + r * cs;
-                    const rr = 3;
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    ctx.moveTo(px + rr + 1, py + 1);
-                    ctx.lineTo(px + cs - rr - 1, py + 1);
-                    ctx.quadraticCurveTo(px + cs - 1, py + 1, px + cs - 1, py + rr + 1);
-                    ctx.lineTo(px + cs - 1, py + cs - rr - 1);
-                    ctx.quadraticCurveTo(px + cs - 1, py + cs - 1, px + cs - rr - 1, py + cs - 1);
-                    ctx.lineTo(px + rr + 1, py + cs - 1);
-                    ctx.quadraticCurveTo(px + 1, py + cs - 1, px + 1, py + cs - rr - 1);
-                    ctx.lineTo(px + 1, py + rr + 1);
-                    ctx.quadraticCurveTo(px + 1, py + 1, px + rr + 1, py + 1);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                    ctx.fillRect(px + 2, py + 2, cs - 4, cs * 0.35);
-                }
+    // Ghost
+    if (eng.cur) {
+        var g = eng.ghost();
+        if (g) { var gb = eng._blocks(g); for (var i = 0; i < gb.length; i++) if (gb[i].y >= 0) this._cell(ctx, gb[i].x, gb[i].y, COLORS[g.type], 0.15); }
     }
-
-    addDropEffect(dist) {
-        this.effects.push({ v: dist * 2, t: Date.now(), d: 500 });
+    // Current
+    if (eng.cur) {
+        var color = COLORS[eng.cur.type], blocks = eng._blocks(eng.cur);
+        for (var i = 0; i < blocks.length; i++) if (blocks[i].y >= 0) this._cell(ctx, blocks[i].x, blocks[i].y, color);
     }
+    // Effects
+    var now = Date.now(), kept = [];
+    for (var i = 0; i < this.effects.length; i++) {
+        var e = this.effects[i], age = now - e.t;
+        if (age > e.d) continue; kept.push(e);
+        ctx.save(); ctx.globalAlpha = 1 - age / e.d;
+        ctx.fillStyle = e.color || '#fff'; ctx.font = 'bold 20px -apple-system, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(e.text, this.cv.width / 2, 60 - (age / e.d) * 40);
+        ctx.restore();
+    }
+    this.effects = kept;
+    // T-Spin flash
+    if (this.tspinFlash > 0) {
+        this.tspinFlash -= 16;
+        ctx.save(); ctx.globalAlpha = this.tspinFlash / 500;
+        ctx.fillStyle = '#bf5af2'; ctx.fillRect(0, 0, W * c, H * c);
+        ctx.restore();
+    }
+};
+Renderer.prototype._cell = function(ctx, x, y, color, alpha) {
+    var c = this.cell, px = x * c, py = y * c, ins = 1, r = Math.min(5, c / 4);
+    ctx.save(); if (alpha) ctx.globalAlpha = alpha;
+    // Rounded rect
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(px+r+ins, py+ins); ctx.lineTo(px+c-r-ins, py+ins);
+    ctx.quadraticCurveTo(px+c-ins, py+ins, px+c-ins, py+r+ins);
+    ctx.lineTo(px+c-ins, py+c-r-ins);
+    ctx.quadraticCurveTo(px+c-ins, py+c-ins, px+c-r-ins, py+c-ins);
+    ctx.lineTo(px+r+ins, py+c-ins);
+    ctx.quadraticCurveTo(px+ins, py+c-ins, px+ins, py+c-r-ins);
+    ctx.lineTo(px+ins, py+r+ins);
+    ctx.quadraticCurveTo(px+ins, py+ins, px+r+ins, py+ins);
+    ctx.closePath(); ctx.fill();
+    // Glass highlight (top half)
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(px+r+ins, py+ins); ctx.lineTo(px+c-r-ins, py+ins);
+    ctx.quadraticCurveTo(px+c-ins, py+ins, px+c-ins, py+r+ins);
+    ctx.lineTo(px+c-ins, py+c*0.4); ctx.lineTo(px+ins, py+c*0.4);
+    ctx.lineTo(px+ins, py+r+ins);
+    ctx.quadraticCurveTo(px+ins, py+ins, px+r+ins, py+ins);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+};
+Renderer.prototype.renderPreview = function(ctx, cvs, piece) {
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+    if (!piece) return;
+    var shape = SHAPES[piece.type][0], cs = Math.min(cvs.width / 5, cvs.height / 5);
+    var ox = (cvs.width - 4 * cs) / 2, oy = (cvs.height - 4 * cs) / 2;
+    var color = COLORS[piece.type];
+    for (var r = 0; r < 4; r++) for (var c2 = 0; c2 < 4; c2++) {
+        if (!shape[r][c2]) continue;
+        var px = ox + c2 * cs, py = oy + r * cs, rr = 3;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(px+rr+1, py+1); ctx.lineTo(px+cs-rr-1, py+1);
+        ctx.quadraticCurveTo(px+cs-1, py+1, px+cs-1, py+rr+1);
+        ctx.lineTo(px+cs-1, py+cs-rr-1);
+        ctx.quadraticCurveTo(px+cs-1, py+cs-1, px+cs-rr-1, py+cs-1);
+        ctx.lineTo(px+rr+1, py+cs-1);
+        ctx.quadraticCurveTo(px+1, py+cs-1, px+1, py+cs-rr-1);
+        ctx.lineTo(px+1, py+rr+1);
+        ctx.quadraticCurveTo(px+1, py+1, px+rr+1, py+1);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(px+2, py+2, cs-4, cs*0.35);
+    }
+};
+Renderer.prototype.addEffect = function(text, color) {
+    this.effects.push({ text: text, color: color || '#fff', t: Date.now(), d: 800 });
+};
+
+/* ── Opponents View (real mini boards) ──── */
+function OpponentsView(el) {
+    this.el = el; this.cards = {}; this.renderIdx = 0;
 }
-
-/* ── Opponents Grid ─────────────────────── */
-class OpponentsView {
-    constructor(el) { this.el = el; this.cards = {}; }
-    update(opps) {
-        for (let i = 0; i < opps.length; i++) {
-            const o = opps[i];
-            if (!this.cards[o.id]) {
-                const card = document.createElement('div');
-                card.className = 'opponent-card';
-                const rank = document.createElement('div');
-                rank.className = 'opponent-card__rank';
-                card.appendChild(rank);
-                const cvs = document.createElement('canvas');
-                cvs.width = 76; cvs.height = 96;
-                card.appendChild(cvs);
-                this.el.appendChild(card);
-                this.cards[o.id] = { el: card, rank: rank, ctx: cvs.getContext('2d') };
-            }
-            const c = this.cards[o.id];
-            c.el.className = 'opponent-card' + (!o.alive ? ' eliminated' : '');
-            c.rank.textContent = o.rank || '-';
-            const ctx = c.ctx;
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.fillRect(0, 0, 76, 96);
-            const h = Math.min(o.height, 20);
-            if (h > 0) {
-                const barH = (h / 20) * 96;
-                const hue = Math.max(0, 120 - (h / 20) * 120);
-                ctx.fillStyle = 'hsl(' + hue + ',70%,50%)';
-                ctx.fillRect(4, 96 - barH, 68, barH);
+OpponentsView.prototype.update = function(opps, frame) {
+    // Only render a batch each frame for performance
+    var batchSize = 8;
+    var start = (this.renderIdx * batchSize) % opps.length;
+    for (var i = 0; i < opps.length; i++) {
+        var o = opps[i];
+        if (!this.cards[o.id]) {
+            var card = document.createElement('div');
+            card.className = 'opponent-card';
+            var cvs = document.createElement('canvas');
+            cvs.width = 50; cvs.height = 100;
+            card.appendChild(cvs);
+            this.el.appendChild(card);
+            this.cards[o.id] = { el: card, ctx: cvs.getContext('2d'), cvs: cvs };
+        }
+        // Update class
+        var c = this.cards[o.id];
+        c.el.className = 'opponent-card' + (!o.alive ? ' eliminated' : '');
+        // Only render mini board for batch
+        if (i >= start && i < start + batchSize && o.alive && o.engine) {
+            this._renderMini(c.ctx, o.engine, 50, 100);
+        }
+    }
+    this.renderIdx++;
+};
+OpponentsView.prototype._renderMini = function(ctx, eng, w, h) {
+    ctx.fillStyle = 'rgba(5,5,15,0.9)'; ctx.fillRect(0, 0, w, h);
+    var cs = Math.min(w / eng.W, h / eng.H);
+    var ox = (w - eng.W * cs) / 2;
+    // Draw placed blocks (bottom portion only for performance)
+    var startRow = Math.max(0, eng.H - 15);
+    for (var y = startRow; y < eng.H; y++) {
+        for (var x = 0; x < eng.W; x++) {
+            if (eng.board[y][x]) {
+                ctx.fillStyle = eng.board[y][x];
+                ctx.fillRect(ox + x * cs, (y - startRow) * cs, cs - 0.5, cs - 0.5);
             }
         }
     }
-}
+    // Draw current piece
+    if (eng.cur) {
+        var blocks = eng._blocks(eng.cur);
+        ctx.fillStyle = COLORS[eng.cur.type];
+        for (var i = 0; i < blocks.length; i++) {
+            var b = blocks[i];
+            if (b.y >= startRow && b.y < eng.H) {
+                ctx.fillRect(ox + b.x * cs, (b.y - startRow) * cs, cs - 0.5, cs - 0.5);
+            }
+        }
+    }
+};
 
 /* ── Toast ──────────────────────────────── */
 function toast(msg) {
     var el = document.querySelector('.toast');
     if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
-    el.textContent = msg;
-    el.classList.remove('show');
-    void el.offsetWidth;
-    el.classList.add('show');
-    clearTimeout(el._t);
+    el.textContent = msg; el.classList.remove('show'); void el.offsetWidth;
+    el.classList.add('show'); clearTimeout(el._t);
     el._t = setTimeout(function() { el.classList.remove('show'); }, 2500);
 }
 
-/* ── Game Controller ────────────────────── */
-class Game {
-    constructor() {
-        this.cv = document.getElementById('gameCanvas');
-        this.nCv = document.getElementById('nextCanvas');
-        this.hCv = document.getElementById('holdCanvas');
-        this.overlay = document.getElementById('overlay');
-        this.startBtn = document.getElementById('startBtn');
-        this.oTitle = document.getElementById('overlayTitle');
-        this.oMsg = document.getElementById('overlayMessage');
-        this.oStats = document.getElementById('overlayStats');
-        this.renderer = new Renderer(this.cv, this.nCv, this.hCv);
-        this.battle = new Battle();
-        this.oppView = new OpponentsView(document.getElementById('opponentsGrid'));
-        this.running = false;
-        this.lastTime = 0;
-        this.keys = {};
-        this.keyTimers = {};
-        this.startTime = 0;
-        this._setup();
-        this._showStart();
-        this._loop(performance.now());
-    }
-
-    _setup() {
-        var self = this;
-        document.addEventListener('keydown', function(e) { self._keyDown(e); });
-        document.addEventListener('keyup', function(e) { self._keyUp(e); });
-        window.addEventListener('keydown', function(e) {
-            if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') e.preventDefault();
-        });
-        this.startBtn.addEventListener('click', function() { self._start(); });
-        var btns = document.querySelectorAll('.pill-btn');
-        for (var i = 0; i < btns.length; i++) {
-            (function(btn) {
-                btn.addEventListener('click', function() {
-                    self.battle.strategy = btn.dataset.strategy;
-                    var all = document.querySelectorAll('.pill-btn');
-                    for (var j = 0; j < all.length; j++) all[j].classList.remove('active');
-                    btn.classList.add('active');
-                    toast('策略: ' + btn.textContent);
-                });
-            })(btns[i]);
-        }
-        window.addEventListener('resize', function() {
-            if (self.battle.human) self.renderer.resize(self.battle.human.engine);
-        });
-    }
-
-    _showStart() {
-        this.oTitle.textContent = 'TETRIS 99';
-        this.oMsg.textContent = '99 人对战 · Liquid Glass 风格\n点击开始或按空格键';
-        this.oStats.textContent = '';
-        this.startBtn.textContent = '开始游戏';
-        this.overlay.classList.remove('hidden');
-    }
-
-    _start() {
-        this.battle.start();
-        this.running = true;
-        this.startTime = Date.now();
-        this.overlay.classList.add('hidden');
-        this.renderer.resize(this.battle.human.engine);
-    }
-
-    _keyDown(e) {
-        if (!this.running) {
-            if (e.key === ' ' || e.key === 'Enter') this._start();
-            return;
-        }
-        var eng = this.battle.human.engine;
-        switch (e.key) {
-            case 'ArrowLeft':
-                eng.move(-1, 0);
-                this._setRepeat('ArrowLeft', function() { eng.move(-1, 0); });
-                break;
-            case 'ArrowRight':
-                eng.move(1, 0);
-                this._setRepeat('ArrowRight', function() { eng.move(1, 0); });
-                break;
-            case 'ArrowDown':
-                if (eng.softDrop()) eng.score++;
-                this._setRepeat('ArrowDown', function() { if (eng.softDrop()) eng.score++; });
-                break;
-            case 'ArrowUp': case 'x': case 'X':
-                eng.rotate(1); break;
-            case 'z': case 'Z':
-                eng.rotate(-1); break;
-            case ' ':
-                var d = eng.hardDrop();
-                if (d) this.renderer.addDropEffect(d);
-                break;
-            case 'c': case 'C':
-                eng.holdPiece(); break;
-        }
-    }
-
-    _keyUp(e) {
-        this.keys[e.key] = false;
-        if (this.keyTimers[e.key]) { clearInterval(this.keyTimers[e.key]); delete this.keyTimers[e.key]; }
-    }
-
-    _setRepeat(key, fn) {
-        if (this.keyTimers[key]) return;
-        this.keys[key] = true;
-        var self = this;
-        setTimeout(function() {
-            if (self.keys[key]) {
-                self.keyTimers[key] = setInterval(function() {
-                    if (self.keys[key]) fn();
-                    else { clearInterval(self.keyTimers[key]); delete self.keyTimers[key]; }
-                }, 50);
-            }
-        }, 170);
-    }
-
-    _loop(now) {
-        var dt = now - this.lastTime;
-        this.lastTime = now;
-        if (dt > 100) dt = 16; // cap delta on tab switch
-
-        if (this.running && !this.battle.ended) {
-            this.battle.update(dt);
-            var h = this.battle.human;
-            // Update stats
-            var aliveCount = 0;
-            for (var i = 0; i < this.battle.players.length; i++) {
-                if (this.battle.players[i].alive) aliveCount++;
-            }
-            var rank = h.alive ? (function() {
-                var r = 0;
-                for (var i = 0; i < this.battle.players.length; i++) {
-                    if (this.battle.players[i].alive && this.battle.players[i].ko > h.ko) r++;
-                }
-                return aliveCount - r;
-            }).call(this) : h.rank;
-            document.getElementById('stat-rank').textContent = rank || aliveCount;
-            document.getElementById('stat-ko').textContent = h.ko;
-            document.getElementById('stat-score').textContent = h.engine.score.toLocaleString();
-            // Combo
-            var comboEl = document.getElementById('comboDisplay');
-            comboEl.textContent = h.engine.combo;
-            if (h.engine.combo > 0) { comboEl.classList.add('bump'); setTimeout(function() { comboEl.classList.remove('bump'); }, 150); }
-            // Attack queue
-            var aq = document.getElementById('attackQueue');
-            if (this._lastAtk !== h.atkQ.length) {
-                this._lastAtk = h.atkQ.length;
-                aq.innerHTML = '';
-                for (var j = 0; j < Math.min(h.atkQ.length, 8); j++) {
-                    var bar = document.createElement('div');
-                    bar.className = 'attack-bar';
-                    aq.appendChild(bar);
-                }
-            }
-            // Opponents
-            this.oppView.update(this.battle.getOpponents());
-            // Preview
-            this.renderer.renderPreview(this.renderer.nCtx, this.nCv, h.engine.next ? { type: h.engine.next.type } : null);
-            this.renderer.renderPreview(this.renderer.hCtx, this.hCv, h.engine.hold ? { type: h.engine.hold } : null);
-            // End check
-            if (this.battle.ended) { this.running = false; this._showEnd(); }
-        }
-        // Render
-        if (this.battle.human) this.renderer.render(this.battle.human.engine);
-        var self = this;
-        requestAnimationFrame(function(t) { self._loop(t); });
-    }
-
-    _showEnd() {
-        var h = this.battle.human;
-        if (h.alive) {
-            this.oTitle.textContent = '胜利！';
-            this.oMsg.textContent = '恭喜，你是最后的赢家！';
-        } else {
-            this.oTitle.textContent = '游戏结束';
-            this.oMsg.textContent = '排名: 第 ' + h.rank + ' 名';
-        }
-        var elapsed = Date.now() - this.startTime;
-        var min = Math.floor(elapsed / 60000);
-        var sec = Math.floor((elapsed % 60000) / 1000);
-        this.oStats.innerHTML = 'KO: ' + h.ko + ' · 清行: ' + h.engine.lines + '<br>分数: ' + h.engine.score.toLocaleString() + ' · 时间: ' + min + ':' + (sec < 10 ? '0' : '') + sec;
-        this.startBtn.textContent = '再来一局';
-        this.overlay.classList.remove('hidden');
-    }
+/* ── Game ───────────────────────────────── */
+function Game() {
+    this.cv = document.getElementById('gameCanvas');
+    this.nCv = document.getElementById('nextCanvas');
+    this.hCv = document.getElementById('holdCanvas');
+    this.overlay = document.getElementById('overlay');
+    this.startBtn = document.getElementById('startBtn');
+    this.oTitle = document.getElementById('overlayTitle');
+    this.oMsg = document.getElementById('overlayMessage');
+    this.oStats = document.getElementById('overlayStats');
+    this.renderer = new Renderer(this.cv, this.nCv, this.hCv);
+    this.battle = new Battle();
+    this.oppView = new OpponentsView(document.getElementById('opponentsGrid'));
+    this.running = false; this.lastTime = 0; this.keys = {}; this.keyTimers = {};
+    this.startTime = 0; this.frame = 0;
+    this._setup(); this._showStart(); this._loop(performance.now());
 }
+Game.prototype._setup = function() {
+    var self = this;
+    document.addEventListener('keydown', function(e) { self._keyDown(e); });
+    document.addEventListener('keyup', function(e) { self._keyUp(e); });
+    window.addEventListener('keydown', function(e) {
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].indexOf(e.key) >= 0) e.preventDefault();
+    });
+    this.startBtn.addEventListener('click', function() { self._start(); });
+    var btns = document.querySelectorAll('.pill-btn');
+    for (var i = 0; i < btns.length; i++) {
+        (function(btn) {
+            btn.addEventListener('click', function() {
+                self.battle.strategy = btn.dataset.strategy;
+                var all = document.querySelectorAll('.pill-btn');
+                for (var j = 0; j < all.length; j++) all[j].classList.remove('active');
+                btn.classList.add('active');
+            });
+        })(btns[i]);
+    }
+    window.addEventListener('resize', function() { if (self.battle.human) self.renderer.resize(self.battle.human.engine); });
+};
+Game.prototype._showStart = function() {
+    this.oTitle.textContent = 'TETRIS 99';
+    this.oMsg.textContent = '50 人对战 · Liquid Glass 风格\n点击开始或按空格键';
+    this.oStats.textContent = '';
+    this.startBtn.textContent = '开始游戏';
+    this.overlay.classList.remove('hidden');
+};
+Game.prototype._start = function() {
+    this.battle.start(); this.running = true; this.startTime = Date.now();
+    this.overlay.classList.add('hidden');
+    this.renderer.resize(this.battle.human.engine);
+};
+Game.prototype._keyDown = function(e) {
+    if (!this.running) { if (e.key === ' ' || e.key === 'Enter') this._start(); return; }
+    var eng = this.battle.human.engine;
+    switch (e.key) {
+        case 'ArrowLeft': eng.move(-1, 0); this._setRepeat('ArrowLeft', function() { eng.move(-1, 0); }); break;
+        case 'ArrowRight': eng.move(1, 0); this._setRepeat('ArrowRight', function() { eng.move(1, 0); }); break;
+        case 'ArrowDown': if (eng.softDrop()) eng.score++; this._setRepeat('ArrowDown', function() { if (eng.softDrop()) eng.score++; }); break;
+        case 'ArrowUp': case 'x': case 'X': eng.rotate(1); break;
+        case 'z': case 'Z': eng.rotate(-1); break;
+        case ' ': var d = eng.hardDrop(); if (d) this.renderer.addEffect('+' + d * 2, '#0a84ff'); break;
+        case 'c': case 'C': eng.holdPiece(); break;
+    }
+};
+Game.prototype._keyUp = function(e) {
+    this.keys[e.key] = false;
+    if (this.keyTimers[e.key]) { clearInterval(this.keyTimers[e.key]); delete this.keyTimers[e.key]; }
+};
+Game.prototype._setRepeat = function(key, fn) {
+    if (this.keyTimers[key]) return; this.keys[key] = true; var self = this;
+    setTimeout(function() { if (self.keys[key]) self.keyTimers[key] = setInterval(function() { if (self.keys[key]) fn(); else { clearInterval(self.keyTimers[key]); delete self.keyTimers[key]; } }, 50); }, 170);
+};
+Game.prototype._loop = function(now) {
+    var dt = now - this.lastTime; this.lastTime = now;
+    if (dt > 100) dt = 16; this.frame++;
+
+    if (this.running && !this.battle.ended) {
+        this.battle.update(dt);
+        var h = this.battle.human;
+        // Stats
+        var alive = 0;
+        for (var i = 0; i < this.battle.players.length; i++) if (this.battle.players[i].alive) alive++;
+        document.getElementById('stat-rank').textContent = h.alive ? alive : h.rank;
+        document.getElementById('stat-ko').textContent = h.ko;
+        document.getElementById('stat-score').textContent = h.engine.score.toLocaleString();
+        // Combo
+        var comboEl = document.getElementById('comboDisplay');
+        comboEl.textContent = h.engine.combo;
+        if (h.engine.combo > 0) { comboEl.classList.add('bump'); setTimeout(function() { comboEl.classList.remove('bump'); }, 150); }
+        // T-Spin effect
+        if (h.engine.lastWasTSpin && h.engine.lastClear > 0) {
+            this.renderer.tspinFlash = 500;
+            this.renderer.addEffect('T-SPIN!', '#bf5af2');
+        }
+        // Attack queue
+        var aq = document.getElementById('attackQueue');
+        if (this._lastAtk !== h.atkQ.length) {
+            this._lastAtk = h.atkQ.length; aq.innerHTML = '';
+            for (var j = 0; j < Math.min(h.atkQ.length, 8); j++) { var bar = document.createElement('div'); bar.className = 'atk-bar'; aq.appendChild(bar); }
+        }
+        // Opponents (batch render)
+        if (this.frame % 3 === 0) this.oppView.update(this.battle.getOpponents(), this.frame);
+        // Preview
+        this.renderer.renderPreview(this.renderer.nCtx, this.nCv, h.engine.next ? {type: h.engine.next.type} : null);
+        this.renderer.renderPreview(this.renderer.hCtx, this.hCv, h.engine.hold ? {type: h.engine.hold} : null);
+        if (this.battle.ended) { this.running = false; this._showEnd(); }
+    }
+    if (this.battle.human) this.renderer.render(this.battle.human.engine);
+    var self = this;
+    requestAnimationFrame(function(t) { self._loop(t); });
+};
+Game.prototype._showEnd = function() {
+    var h = this.battle.human;
+    if (h.alive) { this.oTitle.textContent = '胜利！'; this.oMsg.textContent = '你是最后的赢家！'; }
+    else { this.oTitle.textContent = '游戏结束'; this.oMsg.textContent = '排名: 第 ' + h.rank + ' 名'; }
+    var elapsed = Date.now() - this.startTime, min = Math.floor(elapsed / 60000), sec = Math.floor((elapsed % 60000) / 1000);
+    this.oStats.innerHTML = 'KO: ' + h.ko + ' · 清行: ' + h.engine.lines + '<br>分数: ' + h.engine.score.toLocaleString() + ' · 时间: ' + min + ':' + (sec < 10 ? '0' : '') + sec;
+    this.startBtn.textContent = '再来一局';
+    this.overlay.classList.remove('hidden');
+};
 
 /* ── Boot ───────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function() {
-    window.game = new Game();
-});
+document.addEventListener('DOMContentLoaded', function() { window.game = new Game(); });
