@@ -388,10 +388,11 @@ function Renderer(cv, nCv, hCv) {
 }
 Renderer.prototype.resize = function(eng) {
     var par = this.cv.parentElement;
-    var maxW = Math.min(340, par ? par.clientWidth : 340);
-    var maxH = window.innerHeight - 160;
+    var maxW = par ? par.clientWidth - 20 : 400;
+    var maxH = window.innerHeight - 140;
     this.cell = Math.floor(Math.min(maxW / eng.W, maxH / eng.H));
-    if (this.cell < 14) this.cell = 14;
+    if (this.cell < 16) this.cell = 16;
+    if (this.cell > 40) this.cell = 40;
     this.cv.width = eng.W * this.cell;
     this.cv.height = eng.H * this.cell;
 };
@@ -648,11 +649,13 @@ Game.prototype._loop = function(now) {
         var comboEl = document.getElementById('comboDisplay');
         comboEl.textContent = h.engine.combo;
         if (h.engine.combo > 0) { comboEl.classList.add('bump'); setTimeout(function() { comboEl.classList.remove('bump'); }, 150); }
-        // T-Spin effect
-        if (h.engine.lastWasTSpin && h.engine.lastClear > 0) {
-            this.renderer.tspinFlash = 500;
+        // T-Spin effect (only trigger once per clear)
+        if (h.engine.lastWasTSpin && h.engine.lastClear > 0 && !this._tspinShown) {
+            this.renderer.tspinFlash = 400;
             this.renderer.addEffect('T-SPIN!', '#bf5af2');
+            this._tspinShown = true;
         }
+        if (h.engine.lastClear === 0) this._tspinShown = false;
         // Attack queue
         var aq = document.getElementById('attackQueue');
         if (this._lastAtk !== h.atkQ.length) {
