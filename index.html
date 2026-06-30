@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>TETRIS 99</title>
-    <meta name="description" content="TETRIS 99 - iOS 27 风格俄罗斯方块 99 人对战">
-    <meta name="theme-color" content="#0a0a1a">
+    <meta name="theme-color" content="#050510">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -13,75 +12,64 @@
 </head>
 <body>
     <!-- Animated background -->
-    <div class="bg-mesh">
-        <div class="bg-mesh__orb bg-mesh__orb--1"></div>
-        <div class="bg-mesh__orb bg-mesh__orb--2"></div>
-        <div class="bg-mesh__orb bg-mesh__orb--3"></div>
-        <div class="bg-mesh__orb bg-mesh__orb--4"></div>
-        <div class="bg-mesh__orb bg-mesh__orb--5"></div>
+    <div class="bg-mesh" aria-hidden="true">
+        <div class="bg-orb bg-orb--1"></div>
+        <div class="bg-orb bg-orb--2"></div>
+        <div class="bg-orb bg-orb--3"></div>
+        <div class="bg-orb bg-orb--4"></div>
+        <div class="bg-orb bg-orb--5"></div>
     </div>
 
     <div id="app">
-        <!-- Top Bar -->
+        <!-- Top bar -->
         <header class="top-bar">
             <div class="top-bar__title">TETRIS 99</div>
             <div class="top-bar__stats">
-                <div class="stat-item">
-                    <span class="stat-item__label">排名</span>
-                    <span id="stat-rank" class="stat-item__value">99</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-item__label">KO</span>
-                    <span id="stat-ko" class="stat-item__value">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-item__label">分数</span>
-                    <span id="stat-score" class="stat-item__value">0</span>
-                </div>
+                <div class="stat"><span class="stat-label">排名</span><span id="stat-rank" class="stat-value">99</span></div>
+                <div class="stat"><span class="stat-label">KO</span><span id="stat-ko" class="stat-value">0</span></div>
+                <div class="stat"><span class="stat-label">分数</span><span id="stat-score" class="stat-value">0</span></div>
             </div>
         </header>
 
-        <!-- Main Area -->
+        <!-- Main area -->
         <div class="main-area">
             <!-- Opponents -->
-            <aside class="opponents-panel">
+            <aside class="opponents-panel glass-panel">
                 <div class="opponents-panel__header">对手</div>
                 <div id="opponentsGrid" class="opponents-grid"></div>
             </aside>
 
-            <!-- Game Board -->
+            <!-- Game board -->
             <div class="game-center">
-                <div class="game-board-wrapper">
+                <div class="board-frame">
                     <canvas id="gameCanvas" width="280" height="560"></canvas>
                 </div>
                 <div class="target-bar">
-                    <button class="target-btn active" data-strategy="random">随机</button>
-                    <button class="target-btn" data-strategy="attacker">攻击者</button>
-                    <button class="target-btn" data-strategy="ko">KO</button>
-                    <button class="target-btn" data-strategy="badge">徽章</button>
+                    <button class="pill-btn active" data-strategy="random">随机</button>
+                    <button class="pill-btn" data-strategy="attacker">攻击者</button>
+                    <button class="pill-btn" data-strategy="ko">KO</button>
+                    <button class="pill-btn" data-strategy="badge">徽章</button>
                 </div>
-                <div class="controls-hint">
-                    ← → 移动 · ↑ 旋转 · ↓ 加速 · 空格 硬降 · C 保留
-                </div>
+                <div class="controls-hint">← → 移动 · ↑ 旋转 · ↓ 加速 · 空格 硬降 · C 保留</div>
             </div>
 
-            <!-- Info Panel -->
+            <!-- Info panel -->
             <aside class="info-panel">
-                <div class="info-card">
-                    <div class="info-card__title">下一个</div>
+                <div class="info-card glass-panel">
+                    <div class="info-card__label">下一个</div>
                     <canvas id="nextCanvas" width="100" height="100"></canvas>
                 </div>
-                <div class="info-card">
-                    <div class="info-card__title">保留</div>
+                <div class="info-card glass-panel">
+                    <div class="info-card__label">保留</div>
                     <canvas id="holdCanvas" width="100" height="100"></canvas>
                 </div>
-                <div class="info-card">
-                    <div class="info-card__title">连击</div>
-                    <div id="comboDisplay" class="combo-value">0</div>
+                <div class="info-card glass-panel">
+                    <div class="info-card__label">连击</div>
+                    <div id="comboDisplay" class="combo-num">0</div>
                 </div>
-                <div class="info-card">
-                    <div class="info-card__title">攻击</div>
-                    <div id="attackQueue" class="attack-queue-bars"></div>
+                <div class="info-card glass-panel">
+                    <div class="info-card__label">攻击</div>
+                    <div id="attackQueue" class="atk-bars"></div>
                 </div>
             </aside>
         </div>
@@ -89,10 +77,11 @@
         <!-- Overlay -->
         <div id="overlay" class="overlay">
             <div class="overlay-card">
-                <div id="overlayTitle" class="overlay-card__title">TETRIS 99</div>
-                <div id="overlayMessage" class="overlay-card__subtitle">99 人对战 · iOS 27 风格</div>
-                <div id="overlayStats" class="overlay-card__stats"></div>
-                <button id="startBtn" class="start-btn">开始游戏</button>
+                <div id="overlayTitle" class="overlay-title">TETRIS 99</div>
+                <div id="overlayMessage" class="overlay-sub">99 人对战 · Liquid Glass 风格
+点击开始或按空格键</div>
+                <div id="overlayStats" class="overlay-stats"></div>
+                <button id="startBtn" class="btn-primary">开始游戏</button>
             </div>
         </div>
     </div>

@@ -1,85 +1,43 @@
 /* ============================================
-   TETRIS 99 — Self-contained game engine
-   iOS 27 style · All logic in one file
+   TETRIS 99 - Liquid Glass Edition
+   iOS 27 design - All logic self-contained
    ============================================ */
-
 'use strict';
 
-/* ── Piece definitions ──────────────────── */
 const COLORS = {
-    I: '#00e5ff', O: '#ffd600', T: '#d500f9',
-    S: '#00e676', Z: '#ff1744', J: '#2979ff', L: '#ff9100'
+    I: '#32d7eb', O: '#ffd60a', T: '#bf5af2',
+    S: '#30d158', Z: '#ff453a', J: '#0a84ff', L: '#ff9f0a'
 };
 
 const SHAPES = {
-    I: [
-        [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
-        [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],
-        [[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],
-        [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]
-    ],
-    O: [
-        [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]]
-    ],
-    T: [
-        [[0,0,0,0],[0,1,0,0],[1,1,1,0],[0,0,0,0]],
-        [[0,0,0,0],[0,1,0,0],[0,1,1,0],[0,1,0,0]],
-        [[0,0,0,0],[0,0,0,0],[1,1,1,0],[0,1,0,0]],
-        [[0,0,0,0],[0,1,0,0],[1,1,0,0],[0,1,0,0]]
-    ],
-    S: [
-        [[0,0,0,0],[0,1,1,0],[1,1,0,0],[0,0,0,0]],
-        [[0,0,0,0],[0,1,0,0],[0,1,1,0],[0,0,1,0]],
-        [[0,0,0,0],[0,0,0,0],[0,1,1,0],[1,1,0,0]],
-        [[0,0,0,0],[1,0,0,0],[1,1,0,0],[0,1,0,0]]
-    ],
-    Z: [
-        [[0,0,0,0],[1,1,0,0],[0,1,1,0],[0,0,0,0]],
-        [[0,0,0,0],[0,0,1,0],[0,1,1,0],[0,1,0,0]],
-        [[0,0,0,0],[0,0,0,0],[1,1,0,0],[0,1,1,0]],
-        [[0,0,0,0],[0,1,0,0],[1,1,0,0],[1,0,0,0]]
-    ],
-    J: [
-        [[0,0,0,0],[1,0,0,0],[1,1,1,0],[0,0,0,0]],
-        [[0,0,0,0],[0,1,1,0],[0,1,0,0],[0,1,0,0]],
-        [[0,0,0,0],[0,0,0,0],[1,1,1,0],[0,0,1,0]],
-        [[0,0,0,0],[0,1,0,0],[0,1,0,0],[1,1,0,0]]
-    ],
-    L: [
-        [[0,0,0,0],[0,0,1,0],[1,1,1,0],[0,0,0,0]],
-        [[0,0,0,0],[0,1,0,0],[0,1,0,0],[0,1,1,0]],
-        [[0,0,0,0],[0,0,0,0],[1,1,1,0],[1,0,0,0]],
-        [[0,0,0,0],[1,1,0,0],[0,1,0,0],[0,1,0,0]]
-    ]
+    I:[[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],[[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],[[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]],
+    O:[[[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]]],
+    T:[[[0,0,0,0],[0,1,0,0],[1,1,1,0],[0,0,0,0]],[[0,0,0,0],[0,1,0,0],[0,1,1,0],[0,1,0,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,0],[0,1,0,0]],[[0,0,0,0],[0,1,0,0],[1,1,0,0],[0,1,0,0]]],
+    S:[[[0,0,0,0],[0,1,1,0],[1,1,0,0],[0,0,0,0]],[[0,0,0,0],[0,1,0,0],[0,1,1,0],[0,0,1,0]],[[0,0,0,0],[0,0,0,0],[0,1,1,0],[1,1,0,0]],[[0,0,0,0],[1,0,0,0],[1,1,0,0],[0,1,0,0]]],
+    Z:[[[0,0,0,0],[1,1,0,0],[0,1,1,0],[0,0,0,0]],[[0,0,0,0],[0,0,1,0],[0,1,1,0],[0,1,0,0]],[[0,0,0,0],[0,0,0,0],[1,1,0,0],[0,1,1,0]],[[0,0,0,0],[0,1,0,0],[1,1,0,0],[1,0,0,0]]],
+    J:[[[0,0,0,0],[1,0,0,0],[1,1,1,0],[0,0,0,0]],[[0,0,0,0],[0,1,1,0],[0,1,0,0],[0,1,0,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,0],[0,0,1,0]],[[0,0,0,0],[0,1,0,0],[0,1,0,0],[1,1,0,0]]],
+    L:[[[0,0,0,0],[0,0,1,0],[1,1,1,0],[0,0,0,0]],[[0,0,0,0],[0,1,0,0],[0,1,0,0],[0,1,1,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,0],[1,0,0,0]],[[0,0,0,0],[1,1,0,0],[0,1,0,0],[0,1,0,0]]]
 };
 
 const KICKS = {
-    JLSTZ: {
-        '01': [[-1,0],[-1,1],[0,-2],[-1,-2]],
-        '10': [[1,0],[1,-1],[0,2],[1,2]],
-        '12': [[1,0],[1,-1],[0,2],[1,2]],
-        '21': [[-1,0],[-1,1],[0,-2],[-1,-2]],
-        '23': [[1,0],[1,1],[0,-2],[1,-2]],
-        '32': [[-1,0],[-1,-1],[0,2],[-1,2]],
-        '30': [[-1,0],[-1,-1],[0,2],[-1,2]],
-        '03': [[1,0],[1,1],[0,-2],[1,-2]]
+    J: {
+        '01': [[-1,0],[-1,1],[0,-2],[-1,-2]], '10': [[1,0],[1,-1],[0,2],[1,2]],
+        '12': [[1,0],[1,-1],[0,2],[1,2]], '21': [[-1,0],[-1,1],[0,-2],[-1,-2]],
+        '23': [[1,0],[1,1],[0,-2],[1,-2]], '32': [[-1,0],[-1,-1],[0,2],[-1,2]],
+        '30': [[-1,0],[-1,-1],[0,2],[-1,2]], '03': [[1,0],[1,1],[0,-2],[1,-2]]
     },
     I: {
-        '01': [[-2,0],[1,0],[-2,-1],[1,2]],
-        '10': [[2,0],[-1,0],[2,1],[-1,-2]],
-        '12': [[-1,0],[2,0],[-1,2],[2,-1]],
-        '21': [[1,0],[-2,0],[1,-2],[-2,1]],
-        '23': [[2,0],[-1,0],[2,1],[-1,-2]],
-        '32': [[-2,0],[1,0],[-2,-1],[1,2]],
-        '30': [[1,0],[-2,0],[1,-2],[-2,1]],
-        '03': [[-1,0],[2,0],[-1,2],[2,-1]]
+        '01': [[-2,0],[1,0],[-2,-1],[1,2]], '10': [[2,0],[-1,0],[2,1],[-1,-2]],
+        '12': [[-1,0],[2,0],[-1,2],[2,-1]], '21': [[1,0],[-2,0],[1,-2],[-2,1]],
+        '23': [[2,0],[-1,0],[2,1],[-1,-2]], '32': [[-2,0],[1,0],[-2,-1],[1,2]],
+        '30': [[1,0],[-2,0],[1,-2],[-2,1]], '03': [[-1,0],[2,0],[-1,2],[2,-1]]
     }
 };
 
 function getKicks(type, from, to) {
     if (type === 'O') return [[0, 0]];
     const key = '' + from + to;
-    const table = type === 'I' ? KICKS.I : KICKS.JLSTZ;
+    const table = type === 'I' ? KICKS.I : KICKS.J;
     return [[0, 0], ...(table[key] || [])];
 }
 
@@ -87,7 +45,7 @@ function getKicks(type, from, to) {
 class Bag {
     constructor() { this._bag = []; }
     next() {
-        if (this._bag.length === 0) {
+        if (!this._bag.length) {
             this._bag = ['I','O','T','S','Z','J','L'];
             for (let i = 6; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -98,14 +56,14 @@ class Bag {
     }
 }
 
-/* ── Tetris Engine (single player) ──────── */
+/* ── Engine ─────────────────────────────── */
 class Engine {
-    constructor(w = 10, h = 20) {
-        this.W = w;
-        this.H = h;
+    constructor(w, h) {
+        this.W = w || 10;
+        this.H = h || 20;
         this.board = [];
         this.bag = new Bag();
-        this.cur = null;      // { type, x, y, rot }
+        this.cur = null;
         this.next = null;
         this.hold = null;
         this.canHold = true;
@@ -114,7 +72,6 @@ class Engine {
         this.lines = 0;
         this.combo = 0;
         this.gameOver = false;
-
         this.dropTimer = 0;
         this.lockTimer = 0;
         this.locking = false;
@@ -123,24 +80,29 @@ class Engine {
         this.lastClear = 0;
         this.lastWasTSpin = false;
         this.totalPieces = 0;
-
         this._init();
     }
 
     _init() {
-        this.board = Array.from({ length: this.H }, () => Array(this.W).fill(0));
-        this.next = this._spawn();
-        this._nextPiece();
+        this.board = [];
+        for (let i = 0; i < this.H; i++) this.board.push(this._emptyRow());
+        this.next = this._makePiece();
+        this._spawnNext();
     }
 
-    _spawn() {
-        const t = this.bag.next();
-        return { type: t, x: 3, y: 0, rot: 0 };
+    _emptyRow() {
+        const r = [];
+        for (let i = 0; i < this.W; i++) r.push(0);
+        return r;
     }
 
-    _nextPiece() {
+    _makePiece() {
+        return { type: this.bag.next(), x: 3, y: 0, rot: 0 };
+    }
+
+    _spawnNext() {
         this.cur = this.next;
-        this.next = this._spawn();
+        this.next = this._makePiece();
         this.canHold = true;
         this.locking = false;
         this.lockTimer = 0;
@@ -148,19 +110,24 @@ class Engine {
         if (this._collides(this.cur)) this.gameOver = true;
     }
 
-    _shape(p) { return SHAPES[p.type][p.rot % SHAPES[p.type].length]; }
+    _shape(p) {
+        const shapes = SHAPES[p.type];
+        return shapes[p.rot % shapes.length];
+    }
 
     _blocks(p) {
         const s = this._shape(p);
-        const b = [];
+        const out = [];
         for (let r = 0; r < 4; r++)
             for (let c = 0; c < 4; c++)
-                if (s[r][c]) b.push({ x: p.x + c, y: p.y + r });
-        return b;
+                if (s[r][c]) out.push({ x: p.x + c, y: p.y + r });
+        return out;
     }
 
     _collides(p) {
-        for (const b of this._blocks(p)) {
+        const blocks = this._blocks(p);
+        for (let i = 0; i < blocks.length; i++) {
+            const b = blocks[i];
             if (b.x < 0 || b.x >= this.W || b.y >= this.H) return true;
             if (b.y >= 0 && this.board[b.y][b.x]) return true;
         }
@@ -169,28 +136,37 @@ class Engine {
 
     move(dx, dy) {
         if (!this.cur || this.gameOver) return false;
-        this.cur.x += dx; this.cur.y += dy;
+        this.cur.x += dx;
+        this.cur.y += dy;
         if (this._collides(this.cur)) {
-            this.cur.x -= dx; this.cur.y -= dy;
+            this.cur.x -= dx;
+            this.cur.y -= dy;
             return false;
         }
         if (dy === 0) { this.lockTimer = 0; this.locking = false; }
         return true;
     }
 
-    rotate(dir = 1) {
+    rotate(dir) {
         if (!this.cur || this.gameOver) return false;
-        const old = this.cur.rot;
-        const len = SHAPES[this.cur.type].length;
-        const nw = (old + dir + len) % len;
-        const kicks = getKicks(this.cur.type, old, nw);
-        this.cur.rot = nw;
-        for (const [dx, dy] of kicks) {
-            this.cur.x += dx; this.cur.y += dy;
-            if (!this._collides(this.cur)) { this.lockTimer = 0; this.locking = false; return true; }
-            this.cur.x -= dx; this.cur.y -= dy;
+        if (!dir) dir = 1;
+        const oldRot = this.cur.rot;
+        const shapes = SHAPES[this.cur.type];
+        const newRot = (oldRot + dir + shapes.length) % shapes.length;
+        const kicks = getKicks(this.cur.type, oldRot, newRot);
+        this.cur.rot = newRot;
+        for (let i = 0; i < kicks.length; i++) {
+            this.cur.x += kicks[i][0];
+            this.cur.y += kicks[i][1];
+            if (!this._collides(this.cur)) {
+                this.lockTimer = 0;
+                this.locking = false;
+                return true;
+            }
+            this.cur.x -= kicks[i][0];
+            this.cur.y -= kicks[i][1];
         }
-        this.cur.rot = old;
+        this.cur.rot = oldRot;
         return false;
     }
 
@@ -198,23 +174,25 @@ class Engine {
         if (!this.cur || this.gameOver) return 0;
         let d = 0;
         while (this.move(0, 1)) d++;
-        this.score += d * 2; // Hard drop bonus
+        this.score += d * 2;
         this._lock();
         return d;
     }
 
-    softDrop() { return this.move(0, 1); }
+    softDrop() {
+        return this.move(0, 1);
+    }
 
     holdPiece() {
         if (!this.canHold || !this.cur || this.gameOver) return false;
         const t = this.cur.type;
         if (this.hold) {
-            const ht = this.hold;
+            const tmp = this.hold;
             this.hold = t;
-            this.cur = { type: ht, x: 3, y: 0, rot: 0 };
+            this.cur = { type: tmp, x: 3, y: 0, rot: 0 };
         } else {
             this.hold = t;
-            this._nextPiece();
+            this._spawnNext();
         }
         this.canHold = false;
         return true;
@@ -222,7 +200,7 @@ class Engine {
 
     ghost() {
         if (!this.cur) return null;
-        const g = { ...this.cur };
+        const g = { type: this.cur.type, x: this.cur.x, y: this.cur.y, rot: this.cur.rot };
         while (!this._collides(g)) g.y++;
         g.y--;
         return g;
@@ -231,7 +209,9 @@ class Engine {
     _lock() {
         if (!this.cur) return;
         const color = COLORS[this.cur.type];
-        for (const b of this._blocks(this.cur)) {
+        const blocks = this._blocks(this.cur);
+        for (let i = 0; i < blocks.length; i++) {
+            const b = blocks[i];
             if (b.y >= 0 && b.y < this.H && b.x >= 0 && b.x < this.W) {
                 this.board[b.y][b.x] = color;
             }
@@ -239,41 +219,45 @@ class Engine {
         // T-Spin check
         let tSpin = false;
         if (this.cur.type === 'T') {
-            const corners = [
-                [this.cur.x, this.cur.y], [this.cur.x + 2, this.cur.y],
-                [this.cur.x, this.cur.y + 2], [this.cur.x + 2, this.cur.y + 2]
-            ];
+            const cx = this.cur.x, cy = this.cur.y;
+            const corners = [[cx, cy], [cx + 2, cy], [cx, cy + 2], [cx + 2, cy + 2]];
             let occ = 0;
-            for (const [cx, cy] of corners) {
-                if (cx < 0 || cx >= this.W || cy < 0 || cy >= this.H || (cy >= 0 && this.board[cy] && this.board[cy][cx])) occ++;
+            for (let i = 0; i < 4; i++) {
+                const px = corners[i][0], py = corners[i][1];
+                if (px < 0 || px >= this.W || py < 0 || py >= this.H) occ++;
+                else if (py >= 0 && this.board[py] && this.board[py][px]) occ++;
             }
             tSpin = occ >= 3;
         }
         this.lastWasTSpin = tSpin;
-
         const cleared = this._clearLines();
         this.lastClear = cleared;
-        this._score(cleared, tSpin);
-        this._nextPiece();
+        this._calcScore(cleared, tSpin);
+        this._spawnNext();
     }
 
     _clearLines() {
-        let full = 0;
+        let cleared = 0;
         for (let y = this.H - 1; y >= 0; y--) {
-            if (this.board[y].every(c => c !== 0)) {
+            let full = true;
+            for (let x = 0; x < this.W; x++) {
+                if (!this.board[y][x]) { full = false; break; }
+            }
+            if (full) {
                 this.board.splice(y, 1);
-                this.board.unshift(Array(this.W).fill(0));
-                full++; y++; // re-check same index
+                this.board.unshift(this._emptyRow());
+                cleared++;
+                y++;
             }
         }
-        if (full === 0) { this.combo = 0; return 0; }
-        this.lines += full;
+        if (cleared === 0) { this.combo = 0; return 0; }
+        this.lines += cleared;
         this.combo++;
         this._updateLevel();
-        return full;
+        return cleared;
     }
 
-    _score(lines, tSpin) {
+    _calcScore(lines, tSpin) {
         let base = 0;
         if (tSpin) {
             base = [0, 800, 1200, 1600][lines] || 0;
@@ -281,7 +265,11 @@ class Engine {
             base = [0, 100, 300, 500, 800][lines] || 0;
         }
         if (this.combo > 1) base += 50 * (this.combo - 1);
-        if (this.board.every(r => r.every(c => c === 0))) base *= 10; // perfect clear
+        let empty = true;
+        for (let y = 0; y < this.H && empty; y++)
+            for (let x = 0; x < this.W && empty; x++)
+                if (this.board[y][x]) empty = false;
+        if (empty) base *= 10;
         this.score += base * this.level;
     }
 
@@ -294,27 +282,35 @@ class Engine {
     }
 
     attackLines() {
-        let atk = 0;
         const l = this.lastClear;
+        let atk = 0;
         if (this.lastWasTSpin) {
             atk = [0, 2, 4, 6][l] || 0;
         } else {
             atk = [0, 0, 1, 2, 4][l] || 0;
         }
         if (this.combo > 1) atk += Math.min(this.combo - 1, 4);
-        if (this.board.every(r => r.every(c => c === 0))) atk += 10;
         return atk;
     }
 
     receiveGarbage(n) {
         if (n <= 0) return;
+        // Remove top rows
         for (let i = 0; i < n; i++) this.board.shift();
+        // Add garbage at bottom
         for (let i = 0; i < n; i++) {
-            const row = Array(this.W).fill('#666');
-            row[Math.floor(Math.random() * this.W)] = 0;
+            const row = [];
+            const hole = Math.floor(Math.random() * this.W);
+            for (let x = 0; x < this.W; x++) row.push(x === hole ? 0 : '#666');
             this.board.push(row);
         }
-        if (this.cur && this._collides(this.cur)) this.gameOver = true;
+        // If current piece now overlaps, push it up
+        if (this.cur && this._collides(this.cur)) {
+            this.cur.y -= n;
+            if (this._collides(this.cur)) {
+                this.gameOver = true;
+            }
+        }
     }
 
     update(dt) {
@@ -333,33 +329,34 @@ class Engine {
     }
 
     reset() {
-        Object.assign(this, {
-            score: 0, level: 1, lines: 0, combo: 0, gameOver: false,
-            dropTimer: 0, lockTimer: 0, locking: false, dropMs: 1000,
-            lastClear: 0, lastWasTSpin: false, totalPieces: 0,
-            hold: null, canHold: true
-        });
+        this.score = 0; this.level = 1; this.lines = 0; this.combo = 0;
+        this.gameOver = false; this.dropTimer = 0; this.lockTimer = 0;
+        this.locking = false; this.dropMs = 1000; this.lastClear = 0;
+        this.lastWasTSpin = false; this.totalPieces = 0;
+        this.hold = null; this.canHold = true;
         this.bag = new Bag();
         this._init();
     }
 }
 
-/* ── AI Player ──────────────────────────── */
+/* ── AI Player (much easier) ────────────── */
 class AI {
-    constructor(diff = 'medium') {
-        this.diff = diff;
+    constructor(diff) {
+        this.diff = diff || 'easy';
         this.engine = new Engine();
         this.alive = true;
         this.timer = 0;
-        this.delay = { easy: 800, medium: 400, hard: 200, expert: 100 }[diff] || 400;
-        this.delay += (Math.random() - 0.5) * this.delay * 0.4;
-        this.errRate = { easy: 0.15, medium: 0.08, hard: 0.03, expert: 0.01 }[diff] || 0.08;
+        // Much slower AI - gives human player a chance
+        const delays = { easy: 2500, medium: 1200, hard: 600, expert: 300 };
+        this.baseDelay = delays[this.diff] || 2500;
+        this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
+        this.errRate = { easy: 0.30, medium: 0.15, hard: 0.05, expert: 0.02 }[this.diff] || 0.30;
         this.weights = {
-            easy:   { h: -0.5, l: 0.8, ho: -0.3, b: -0.1, a: -0.1 },
-            medium: { h: -0.7, l: 1.0, ho: -0.5, b: -0.2, a: -0.2 },
+            easy:   { h: -0.3, l: 0.5, ho: -0.2, b: -0.05, a: -0.05 },
+            medium: { h: -0.6, l: 0.9, ho: -0.4, b: -0.15, a: -0.15 },
             hard:   { h: -0.9, l: 1.2, ho: -0.7, b: -0.3, a: -0.3 },
             expert: { h: -1.0, l: 1.5, ho: -1.0, b: -0.4, a: -0.4 }
-        }[diff] || { h: -0.7, l: 1.0, ho: -0.5, b: -0.2, a: -0.2 };
+        }[this.diff] || { h: -0.3, l: 0.5, ho: -0.2, b: -0.05, a: -0.05 };
     }
 
     update(dt) {
@@ -369,21 +366,20 @@ class AI {
         if (this.timer >= this.delay) {
             this._decide();
             this.timer = 0;
-            this.delay = { easy: 800, medium: 400, hard: 200, expert: 100 }[this.diff] || 400;
-            this.delay += (Math.random() - 0.5) * this.delay * 0.4;
+            this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
         }
     }
 
     _decide() {
         if (!this.engine.cur) return;
-        if (Math.random() < this.errRate) { this._random(); return; }
+        if (Math.random() < this.errRate) { this._randomMove(); return; }
         const best = this._bestMove();
         if (best) {
             const cur = this.engine.cur;
             while (cur.rot !== best.rot) this.engine.rotate(1);
             const dx = best.x - cur.x;
-            if (dx > 0) for (let i = 0; i < dx; i++) this.engine.move(1, 0);
-            if (dx < 0) for (let i = 0; i < -dx; i++) this.engine.move(-1, 0);
+            if (dx > 0) { for (let i = 0; i < dx; i++) this.engine.move(1, 0); }
+            if (dx < 0) { for (let i = 0; i < -dx; i++) this.engine.move(-1, 0); }
             this.engine.hardDrop();
         }
     }
@@ -391,62 +387,66 @@ class AI {
     _bestMove() {
         const p = this.engine.cur;
         if (!p) return null;
-        let best = null, bestS = -Infinity;
-        const len = SHAPES[p.type].length;
-        for (let r = 0; r < len; r++) {
+        let best = null, bestScore = -Infinity;
+        const numRotations = SHAPES[p.type].length;
+        for (let r = 0; r < numRotations; r++) {
             for (let x = -2; x < this.engine.W + 2; x++) {
-                const t = { type: p.type, x, y: 0, rot: r };
-                while (!this.engine._collides(t)) t.y++;
-                t.y--;
-                if (this.engine._collides(t)) continue;
-                const s = this._eval(t);
-                if (s > bestS) { bestS = s; best = { x: t.x, rot: r }; }
+                const test = { type: p.type, x: x, y: 0, rot: r };
+                while (!this.engine._collides(test)) test.y++;
+                test.y--;
+                if (this.engine._collides(test)) continue;
+                const score = this._evaluate(test);
+                if (score > bestScore) { bestScore = score; best = { x: test.x, rot: r }; }
             }
         }
         return best;
     }
 
-    _eval(p) {
+    _evaluate(p) {
         const eng = this.engine;
-        const tmp = eng.board.map(r => [...r]);
-        for (const b of eng._blocks(p)) {
+        // Copy board
+        const tmp = [];
+        for (let y = 0; y < eng.H; y++) {
+            const row = [];
+            for (let x = 0; x < eng.W; x++) row.push(eng.board[y][x]);
+            tmp.push(row);
+        }
+        // Place piece
+        const blocks = eng._blocks(p);
+        for (let i = 0; i < blocks.length; i++) {
+            const b = blocks[i];
             if (b.y >= 0 && b.y < eng.H && b.x >= 0 && b.x < eng.W) tmp[b.y][b.x] = 1;
         }
-        // clear full rows
-        const cleared = tmp.filter(r => !r.every(c => c !== 0));
-        while (cleared.length < eng.H) cleared.unshift(Array(eng.W).fill(0));
-        const board = cleared;
-        const w = this.weights;
-        const linesCleared = eng.H - board.length + (eng.H - board.filter(r => r.every(c => c === 0)).length);
-        // Actually count cleared lines properly
+        // Count and clear lines
         let cl = 0;
-        for (const row of tmp) if (row.every(c => c !== 0)) cl++;
-
-        let maxH = 0, holes = 0, agg = 0;
+        for (let y = eng.H - 1; y >= 0; y--) {
+            let full = true;
+            for (let x = 0; x < eng.W; x++) { if (!tmp[y][x]) { full = false; break; } }
+            if (full) { tmp.splice(y, 1); tmp.unshift(Array(eng.W).fill(0)); cl++; y++; }
+        }
+        // Metrics
         const heights = [];
+        let maxH = 0, holes = 0, agg = 0;
         for (let x = 0; x < eng.W; x++) {
             let h = 0, found = false;
             for (let y = 0; y < eng.H; y++) {
-                if (board[y][x]) { if (!found) { h = eng.H - y; found = true; } }
+                if (tmp[y][x]) { if (!found) { h = eng.H - y; found = true; } }
                 else if (found) holes++;
             }
-            heights.push(h);
-            maxH = Math.max(maxH, h);
-            agg += h;
+            heights.push(h); if (h > maxH) maxH = h; agg += h;
         }
         let bump = 0;
         for (let i = 0; i < heights.length - 1; i++) bump += Math.abs(heights[i] - heights[i + 1]);
-
+        const w = this.weights;
         return w.l * cl * cl + w.h * maxH + w.ho * holes + w.b * bump + w.a * agg;
     }
 
-    _random() {
-        const acts = ['l','r','rot','drop','hold'];
-        const a = acts[Math.floor(Math.random() * acts.length)];
-        if (a === 'l') this.engine.move(-1, 0);
-        else if (a === 'r') this.engine.move(1, 0);
-        else if (a === 'rot') this.engine.rotate(1);
-        else if (a === 'drop') this.engine.hardDrop();
+    _randomMove() {
+        const r = Math.random();
+        if (r < 0.2) this.engine.move(-1, 0);
+        else if (r < 0.4) this.engine.move(1, 0);
+        else if (r < 0.6) this.engine.rotate(1);
+        else if (r < 0.85) this.engine.hardDrop();
         else this.engine.holdPiece();
     }
 
@@ -454,6 +454,7 @@ class AI {
         this.engine.reset();
         this.alive = true;
         this.timer = 0;
+        this.delay = this.baseDelay + Math.random() * this.baseDelay * 0.5;
     }
 }
 
@@ -467,39 +468,30 @@ class Battle {
         this.ended = false;
         this.rank = 99;
         this.strategy = 'random';
-        this.stats = { ko: 0 };
     }
 
-    init(aiCount = 98) {
+    init(count) {
         this.players = [];
-        this.rank = aiCount + 1;
+        this.rank = (count || 98) + 1;
         this.ended = false;
-        this.stats = { ko: 0 };
-
-        // Human
+        // Human player
         const h = {
-            id: 'human', name: '玩家', isAI: false,
+            id: 'human', name: 'Player', isAI: false,
             engine: new Engine(), alive: true, rank: null,
-            ko: 0, badges: 0, atkQ: [], lastLines: 0
+            ko: 0, badges: 0, atkQ: [], lastLines: 0, _lastGarbageTime: 0
         };
         this.players.push(h);
         this.human = h;
-
-        // AIs
+        // AI players
         this.ais = [];
-        const diffs = ['easy', 'medium', 'hard', 'expert'];
-        const weights = [0.3, 0.4, 0.25, 0.05];
-        for (let i = 0; i < aiCount; i++) {
-            let r = Math.random(), cum = 0, diff = 'medium';
-            for (let d = 0; d < diffs.length; d++) {
-                cum += weights[d];
-                if (r <= cum) { diff = diffs[d]; break; }
-            }
+        const diffs = ['easy', 'easy', 'easy', 'medium', 'medium', 'hard'];
+        for (let i = 0; i < (count || 98); i++) {
+            const diff = diffs[Math.floor(Math.random() * diffs.length)];
             const ai = new AI(diff);
             const p = {
                 id: 'ai_' + i, name: 'AI ' + (i + 1), isAI: true,
-                engine: ai.engine, ai, alive: true, rank: null,
-                ko: 0, badges: 0, atkQ: [], lastLines: 0, diff
+                engine: ai.engine, ai: ai, alive: true, rank: null,
+                ko: 0, badges: 0, atkQ: [], lastLines: 0, diff: diff, _lastGarbageTime: 0
             };
             this.players.push(p);
             this.ais.push(p);
@@ -507,18 +499,19 @@ class Battle {
     }
 
     start() {
-        this.init();
+        this.init(98);
         this.started = true;
     }
 
     update(dt) {
         if (!this.started || this.ended) return;
-        for (const p of this.players) {
+        for (let i = 0; i < this.players.length; i++) {
+            const p = this.players[i];
             if (!p.alive) continue;
             const prev = p.engine.lines;
             if (p.isAI) {
                 p.ai.update(dt);
-                if (!p.ai.alive) this._eliminate(p);
+                if (!p.ai.alive || p.engine.gameOver) this._eliminate(p);
             } else {
                 p.engine.update(dt);
                 if (p.engine.gameOver) this._eliminate(p);
@@ -530,196 +523,237 @@ class Battle {
     }
 
     _processAttacks() {
-        for (const p of this.players) {
+        var now = Date.now ? Date.now() : 0;
+        for (var i = 0; i < this.players.length; i++) {
+            var p = this.players[i];
             if (!p.alive || p.lastLines <= 0) continue;
-            const atk = p.engine.attackLines();
+            // Only 2+ line clears or T-Spins send garbage
+            if (p.lastLines < 2 && !p.engine.lastWasTSpin) continue;
+            var atk = p.engine.attackLines();
             if (atk <= 0) continue;
-            const targets = this._pickTargets(p.id, atk);
-            for (const t of targets) {
+            // Random chance to send (reduces spam with many AIs)
+            if (Math.random() > 0.4) continue;
+            var targets = this._pickTargets(p.id, 1);
+            for (var j = 0; j < targets.length; j++) {
+                var t = targets[j];
                 if (!t.alive) continue;
-                t.atkQ.push({ lines: atk, from: p.id });
-                t.engine.receiveGarbage(atk);
+                // Rate limit: max 1 garbage per 2 seconds per target
+                if (t._lastGTime && now - t._lastGTime < 2000) continue;
+                t._lastGTime = now;
+                t.atkQ.push({ lines: 1, from: p.id });
+                t.engine.receiveGarbage(1);
                 if (t.engine.gameOver) this._eliminate(t, p.id);
             }
         }
     }
 
     _pickTargets(srcId, atk) {
-        const alive = this.players.filter(p => p.alive && p.id !== srcId);
+        const alive = [];
+        for (let i = 0; i < this.players.length; i++) {
+            if (this.players[i].alive && this.players[i].id !== srcId) alive.push(this.players[i]);
+        }
         if (!alive.length) return [];
         const n = Math.min(4, alive.length);
-        switch (this.strategy) {
-            case 'attacker': {
-                const att = alive.filter(p => p.target === srcId);
-                if (att.length) return att.slice(0, n);
-                return this._randN(alive, n);
+        if (this.strategy === 'ko') {
+            const vuln = [];
+            for (let i = 0; i < alive.length; i++) {
+                if (this._height(alive[i]) > 14) vuln.push(alive[i]);
             }
-            case 'ko': {
-                const vuln = alive.filter(p => this._height(p) > 15)
-                    .sort((a, b) => this._height(b) - this._height(a));
-                return vuln.length ? vuln.slice(0, n) : this._randN(alive, n);
-            }
-            case 'badge':
-                return [...alive].sort((a, b) => b.badges - a.badges).slice(0, n);
-            default:
-                return this._randN(alive, n);
+            vuln.sort(function(a, b) { return this._height(b) - this._height(a); }.bind(this));
+            return vuln.length ? vuln.slice(0, n) : this._randN(alive, n);
         }
+        if (this.strategy === 'badge') {
+            const sorted = alive.slice().sort(function(a, b) { return b.badges - a.badges; });
+            return sorted.slice(0, n);
+        }
+        return this._randN(alive, n);
     }
 
     _randN(arr, n) {
-        const s = [...arr].sort(() => Math.random() - 0.5);
+        const s = arr.slice();
+        for (let i = s.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = s[i]; s[i] = s[j]; s[j] = tmp;
+        }
         return s.slice(0, n);
     }
 
     _height(p) {
         const b = p.engine.board;
-        for (let y = 0; y < b.length; y++) if (b[y].some(c => c)) return b.length - y;
+        for (let y = 0; y < b.length; y++) {
+            for (let x = 0; x < b[y].length; x++) {
+                if (b[y][x]) return b.length - y;
+            }
+        }
         return 0;
     }
 
-    _eliminate(p, killerId = null) {
+    _eliminate(p, killerId) {
         if (!p.alive) return;
         p.alive = false;
         p.rank = this.rank--;
         if (killerId) {
-            const k = this.players.find(q => q.id === killerId);
-            if (k && k.alive) { k.ko++; k.badges += p.badges + 1; this.stats.ko++; }
+            for (let i = 0; i < this.players.length; i++) {
+                if (this.players[i].id === killerId && this.players[i].alive) {
+                    this.players[i].ko++;
+                    this.players[i].badges += p.badges + 1;
+                    break;
+                }
+            }
         }
     }
 
     _checkEnd() {
-        const alive = this.players.filter(p => p.alive);
-        if (alive.length <= 1) {
+        let count = 0, last = null;
+        for (let i = 0; i < this.players.length; i++) {
+            if (this.players[i].alive) { count++; last = this.players[i]; }
+        }
+        if (count <= 1) {
             this.ended = true;
-            if (alive[0]) alive[0].rank = 1;
+            if (last) last.rank = 1;
         }
     }
 
     getOpponents() {
-        return this.ais.slice(0, 40).map(p => ({
-            id: p.id, rank: p.rank, alive: p.alive,
-            height: this._height(p),
-            targeting: false, targeted: false
-        }));
+        const out = [];
+        const limit = Math.min(this.ais.length, 40);
+        for (let i = 0; i < limit; i++) {
+            const p = this.ais[i];
+            out.push({
+                id: p.id, rank: p.rank, alive: p.alive,
+                height: this._height(p), targeting: false, targeted: false
+            });
+        }
+        return out;
     }
 }
 
 /* ── Renderer ───────────────────────────── */
 class Renderer {
-    constructor(canvas, nextCanvas, holdCanvas) {
-        this.cv = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.nCv = nextCanvas;
-        this.nCtx = nextCanvas.getContext('2d');
-        this.hCv = holdCanvas;
-        this.hCtx = holdCanvas.getContext('2d');
+    constructor(cv, nCv, hCv) {
+        this.cv = cv;
+        this.ctx = cv.getContext('2d');
+        this.nCv = nCv;
+        this.nCtx = nCv.getContext('2d');
+        this.hCv = hCv;
+        this.hCtx = hCv.getContext('2d');
         this.cell = 28;
-        this.ox = 0;
-        this.oy = 0;
         this.effects = [];
     }
 
-    resize(engine) {
+    resize(eng) {
         const wrapper = this.cv.parentElement;
-        const maxW = Math.min(320, wrapper ? wrapper.clientWidth : 320);
-        const maxH = Math.min(640, window.innerHeight - 180);
-        this.cell = Math.floor(Math.min(maxW / engine.W, maxH / engine.H));
-        this.cv.width = engine.W * this.cell;
-        this.cv.height = engine.H * this.cell;
-        this.ox = 0;
-        this.oy = 0;
+        const maxW = Math.min(300, wrapper ? wrapper.clientWidth : 300);
+        const maxH = Math.min(620, window.innerHeight - 200);
+        this.cell = Math.floor(Math.min(maxW / eng.W, maxH / eng.H));
+        if (this.cell < 12) this.cell = 12;
+        this.cv.width = eng.W * this.cell;
+        this.cv.height = eng.H * this.cell;
     }
 
-    render(engine) {
-        const ctx = this.ctx;
-        const c = this.cell;
+    render(eng) {
+        const ctx = this.ctx, c = this.cell, W = eng.W, H = eng.H;
         ctx.clearRect(0, 0, this.cv.width, this.cv.height);
-
         // Grid
-        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
         ctx.lineWidth = 1;
-        for (let x = 0; x <= engine.W; x++) {
-            ctx.beginPath(); ctx.moveTo(x * c, 0); ctx.lineTo(x * c, engine.H * c); ctx.stroke();
-        }
-        for (let y = 0; y <= engine.H; y++) {
-            ctx.beginPath(); ctx.moveTo(0, y * c); ctx.lineTo(engine.W * c, y * c); ctx.stroke();
-        }
-
-        // Board
-        for (let y = 0; y < engine.H; y++)
-            for (let x = 0; x < engine.W; x++)
-                if (engine.board[y][x]) this._cell(ctx, x, y, engine.board[y][x]);
-
+        for (let x = 0; x <= W; x++) { ctx.beginPath(); ctx.moveTo(x*c, 0); ctx.lineTo(x*c, H*c); ctx.stroke(); }
+        for (let y = 0; y <= H; y++) { ctx.beginPath(); ctx.moveTo(0, y*c); ctx.lineTo(W*c, y*c); ctx.stroke(); }
+        // Placed blocks
+        for (let y = 0; y < H; y++)
+            for (let x = 0; x < W; x++)
+                if (eng.board[y][x]) this._drawCell(ctx, x, y, eng.board[y][x]);
         // Ghost
-        if (engine.cur) {
-            const g = engine.ghost();
-            if (g) for (const b of engine._blocks(g))
-                if (b.y >= 0) this._cell(ctx, b.x, b.y, COLORS[g.type], 0.15);
+        if (eng.cur) {
+            const g = eng.ghost();
+            if (g) {
+                const gb = eng._blocks(g);
+                for (let i = 0; i < gb.length; i++)
+                    if (gb[i].y >= 0) this._drawCell(ctx, gb[i].x, gb[i].y, COLORS[g.type], 0.15);
+            }
         }
-
-        // Current
-        if (engine.cur) {
-            const color = COLORS[engine.cur.type];
-            for (const b of engine._blocks(engine.cur))
-                if (b.y >= 0) this._cell(ctx, b.x, b.y, color);
+        // Current piece
+        if (eng.cur) {
+            const color = COLORS[eng.cur.type];
+            const blocks = eng._blocks(eng.cur);
+            for (let i = 0; i < blocks.length; i++)
+                if (blocks[i].y >= 0) this._drawCell(ctx, blocks[i].x, blocks[i].y, color);
         }
-
         // Effects
-        this.effects = this.effects.filter(e => {
-            const age = Date.now() - e.t;
-            if (age > e.d) return false;
-            const p = age / e.d;
-            ctx.save(); ctx.globalAlpha = 1 - p;
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 16px -apple-system'; ctx.textAlign = 'center';
-            ctx.fillText('+' + e.v, this.cv.width / 2, 50 - p * 30);
+        const now = Date.now();
+        const kept = [];
+        for (let i = 0; i < this.effects.length; i++) {
+            const e = this.effects[i];
+            const age = now - e.t;
+            if (age > e.d) continue;
+            kept.push(e);
+            ctx.save();
+            ctx.globalAlpha = 1 - age / e.d;
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 18px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('+' + e.v, this.cv.width / 2, 50 - (age / e.d) * 30);
             ctx.restore();
-            return true;
-        });
+        }
+        this.effects = kept;
     }
 
-    _cell(ctx, x, y, color, alpha = 1) {
+    _drawCell(ctx, x, y, color, alpha) {
         const c = this.cell;
-        const px = this.ox + x * c;
-        const py = this.oy + y * c;
+        const px = x * c, py = y * c;
+        const inset = 1;
+        const r = Math.min(5, c / 4);
         ctx.save();
-        ctx.globalAlpha = alpha;
-        // Main fill
+        if (alpha) ctx.globalAlpha = alpha;
+        // Main fill with rounded rect
         ctx.fillStyle = color;
-        const r = 4;
         ctx.beginPath();
-        ctx.moveTo(px + r + 1, py + 1);
-        ctx.lineTo(px + c - r - 1, py + 1);
-        ctx.quadraticCurveTo(px + c - 1, py + 1, px + c - 1, py + r + 1);
-        ctx.lineTo(px + c - 1, py + c - r - 1);
-        ctx.quadraticCurveTo(px + c - 1, py + c - 1, px + c - r - 1, py + c - 1);
-        ctx.lineTo(px + r + 1, py + c - 1);
-        ctx.quadraticCurveTo(px + 1, py + c - 1, px + 1, py + c - r - 1);
-        ctx.lineTo(px + 1, py + r + 1);
-        ctx.quadraticCurveTo(px + 1, py + 1, px + r + 1, py + 1);
+        ctx.moveTo(px + r + inset, py + inset);
+        ctx.lineTo(px + c - r - inset, py + inset);
+        ctx.quadraticCurveTo(px + c - inset, py + inset, px + c - inset, py + r + inset);
+        ctx.lineTo(px + c - inset, py + c - r - inset);
+        ctx.quadraticCurveTo(px + c - inset, py + c - inset, px + c - r - inset, py + c - inset);
+        ctx.lineTo(px + r + inset, py + c - inset);
+        ctx.quadraticCurveTo(px + inset, py + c - inset, px + inset, py + c - r - inset);
+        ctx.lineTo(px + inset, py + r + inset);
+        ctx.quadraticCurveTo(px + inset, py + inset, px + r + inset, py + inset);
         ctx.closePath();
         ctx.fill();
-        // Highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(px + 2, py + 2, c - 4, 3);
+        // Glass highlight (top)
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(px + r + inset, py + inset);
+        ctx.lineTo(px + c - r - inset, py + inset);
+        ctx.quadraticCurveTo(px + c - inset, py + inset, px + c - inset, py + r + inset);
+        ctx.lineTo(px + c - inset, py + c * 0.4);
+        ctx.lineTo(px + inset, py + c * 0.4);
+        ctx.lineTo(px + inset, py + r + inset);
+        ctx.quadraticCurveTo(px + inset, py + inset, px + r + inset, py + inset);
+        ctx.closePath();
+        ctx.fill();
+        // Subtle inner shadow (bottom-right)
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(px + c * 0.5, py + c - inset - 2, c * 0.5 - inset, 2);
+        ctx.fillRect(px + c - inset - 2, py + c * 0.5, 2, c * 0.5 - inset);
         ctx.restore();
     }
 
-    renderPreview(ctx, canvas, piece) {
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    renderPreview(ctx, cvs, piece) {
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
         if (!piece) return;
         const shape = SHAPES[piece.type][0];
-        const cs = Math.min(canvas.width / 5, canvas.height / 5);
-        const ox = (canvas.width - 4 * cs) / 2;
-        const oy = (canvas.height - 4 * cs) / 2;
+        const cs = Math.min(cvs.width / 5, cvs.height / 5);
+        const ox = (cvs.width - 4 * cs) / 2;
+        const oy = (cvs.height - 4 * cs) / 2;
         const color = COLORS[piece.type];
         for (let r = 0; r < 4; r++)
             for (let c2 = 0; c2 < 4; c2++)
                 if (shape[r][c2]) {
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
                     const px = ox + c2 * cs, py = oy + r * cs;
                     const rr = 3;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
                     ctx.moveTo(px + rr + 1, py + 1);
                     ctx.lineTo(px + cs - rr - 1, py + 1);
                     ctx.quadraticCurveTo(px + cs - 1, py + 1, px + cs - 1, py + rr + 1);
@@ -731,25 +765,23 @@ class Renderer {
                     ctx.quadraticCurveTo(px + 1, py + 1, px + rr + 1, py + 1);
                     ctx.closePath();
                     ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.fillRect(px + 2, py + 2, cs - 4, cs * 0.35);
                 }
     }
 
     addDropEffect(dist) {
-        this.effects.push({ v: dist * 2, t: Date.now(), d: 600 });
+        this.effects.push({ v: dist * 2, t: Date.now(), d: 500 });
     }
 }
 
-/* ── Opponents Renderer ─────────────────── */
+/* ── Opponents Grid ─────────────────────── */
 class OpponentsView {
-    constructor(container) {
-        this.el = container;
-        this.cards = new Map();
-    }
-
-    update(opponents) {
-        // Add new
-        for (const o of opponents) {
-            if (!this.cards.has(o.id)) {
+    constructor(el) { this.el = el; this.cards = {}; }
+    update(opps) {
+        for (let i = 0; i < opps.length; i++) {
+            const o = opps[i];
+            if (!this.cards[o.id]) {
                 const card = document.createElement('div');
                 card.className = 'opponent-card';
                 const rank = document.createElement('div');
@@ -759,28 +791,20 @@ class OpponentsView {
                 cvs.width = 76; cvs.height = 96;
                 card.appendChild(cvs);
                 this.el.appendChild(card);
-                this.cards.set(o.id, { el: card, rank, ctx: cvs.getContext('2d'), cvs });
+                this.cards[o.id] = { el: card, rank: rank, ctx: cvs.getContext('2d') };
             }
-            const c = this.cards.get(o.id);
-            c.el.classList.toggle('eliminated', !o.alive);
+            const c = this.cards[o.id];
+            c.el.className = 'opponent-card' + (!o.alive ? ' eliminated' : '');
             c.rank.textContent = o.rank || '-';
-            // Draw mini bar
             const ctx = c.ctx;
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.fillRect(0, 0, 76, 96);
             const h = Math.min(o.height, 20);
             if (h > 0) {
                 const barH = (h / 20) * 96;
                 const hue = Math.max(0, 120 - (h / 20) * 120);
-                ctx.fillStyle = `hsl(${hue},70%,50%)`;
+                ctx.fillStyle = 'hsl(' + hue + ',70%,50%)';
                 ctx.fillRect(4, 96 - barH, 68, barH);
-            }
-        }
-        // Remove old
-        for (const [id, c] of this.cards) {
-            if (!opponents.find(o => o.id === id)) {
-                c.el.remove();
-                this.cards.delete(id);
             }
         }
     }
@@ -788,20 +812,19 @@ class OpponentsView {
 
 /* ── Toast ──────────────────────────────── */
 function toast(msg) {
-    let el = document.querySelector('.toast');
+    var el = document.querySelector('.toast');
     if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
     el.textContent = msg;
     el.classList.remove('show');
-    void el.offsetWidth; // reflow
+    void el.offsetWidth;
     el.classList.add('show');
     clearTimeout(el._t);
-    el._t = setTimeout(() => el.classList.remove('show'), 2500);
+    el._t = setTimeout(function() { el.classList.remove('show'); }, 2500);
 }
 
-/* ── Main Game Controller ───────────────── */
+/* ── Game Controller ────────────────────── */
 class Game {
     constructor() {
-        // DOM
         this.cv = document.getElementById('gameCanvas');
         this.nCv = document.getElementById('nextCanvas');
         this.hCv = document.getElementById('holdCanvas');
@@ -810,59 +833,47 @@ class Game {
         this.oTitle = document.getElementById('overlayTitle');
         this.oMsg = document.getElementById('overlayMessage');
         this.oStats = document.getElementById('overlayStats');
-
-        // Systems
         this.renderer = new Renderer(this.cv, this.nCv, this.hCv);
         this.battle = new Battle();
         this.oppView = new OpponentsView(document.getElementById('opponentsGrid'));
-
-        // State
         this.running = false;
         this.lastTime = 0;
         this.keys = {};
         this.keyTimers = {};
         this.startTime = 0;
-
         this._setup();
         this._showStart();
-        // Initial canvas sizing
-        this.renderer.cv.width = 280;
-        this.renderer.cv.height = 560;
         this._loop(performance.now());
     }
 
     _setup() {
-        // Keyboard
-        const kd = e => this._keyDown(e);
-        const ku = e => this._keyUp(e);
-        document.addEventListener('keydown', kd);
-        document.addEventListener('keyup', ku);
-        window.addEventListener('keydown', e => {
-            if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+        var self = this;
+        document.addEventListener('keydown', function(e) { self._keyDown(e); });
+        document.addEventListener('keyup', function(e) { self._keyUp(e); });
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') e.preventDefault();
         });
-
-        // Start button
-        this.startBtn.addEventListener('click', () => this._start());
-
-        // Target buttons
-        document.querySelectorAll('.target-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.battle.strategy = btn.dataset.strategy;
-                document.querySelectorAll('.target-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                toast('策略: ' + btn.textContent);
-            });
-        });
-
-        // Resize
-        window.addEventListener('resize', () => {
-            if (this.battle.human) this.renderer.resize(this.battle.human.engine);
+        this.startBtn.addEventListener('click', function() { self._start(); });
+        var btns = document.querySelectorAll('.pill-btn');
+        for (var i = 0; i < btns.length; i++) {
+            (function(btn) {
+                btn.addEventListener('click', function() {
+                    self.battle.strategy = btn.dataset.strategy;
+                    var all = document.querySelectorAll('.pill-btn');
+                    for (var j = 0; j < all.length; j++) all[j].classList.remove('active');
+                    btn.classList.add('active');
+                    toast('策略: ' + btn.textContent);
+                });
+            })(btns[i]);
+        }
+        window.addEventListener('resize', function() {
+            if (self.battle.human) self.renderer.resize(self.battle.human.engine);
         });
     }
 
     _showStart() {
         this.oTitle.textContent = 'TETRIS 99';
-        this.oMsg.textContent = '99 人对战 · iOS 27 风格';
+        this.oMsg.textContent = '99 人对战 · Liquid Glass 风格\n点击开始或按空格键';
         this.oStats.textContent = '';
         this.startBtn.textContent = '开始游戏';
         this.overlay.classList.remove('hidden');
@@ -881,29 +892,30 @@ class Game {
             if (e.key === ' ' || e.key === 'Enter') this._start();
             return;
         }
-        const eng = this.battle.human.engine;
+        var eng = this.battle.human.engine;
         switch (e.key) {
             case 'ArrowLeft':
-                eng.move(-1, 0); this._setRepeat('ArrowLeft', () => eng.move(-1, 0)); break;
+                eng.move(-1, 0);
+                this._setRepeat('ArrowLeft', function() { eng.move(-1, 0); });
+                break;
             case 'ArrowRight':
-                eng.move(1, 0); this._setRepeat('ArrowRight', () => eng.move(1, 0)); break;
+                eng.move(1, 0);
+                this._setRepeat('ArrowRight', function() { eng.move(1, 0); });
+                break;
             case 'ArrowDown':
                 if (eng.softDrop()) eng.score++;
-                this._setRepeat('ArrowDown', () => { if (eng.softDrop()) eng.score++; }); break;
+                this._setRepeat('ArrowDown', function() { if (eng.softDrop()) eng.score++; });
+                break;
             case 'ArrowUp': case 'x': case 'X':
                 eng.rotate(1); break;
             case 'z': case 'Z':
                 eng.rotate(-1); break;
             case ' ':
-                const d = eng.hardDrop();
+                var d = eng.hardDrop();
                 if (d) this.renderer.addDropEffect(d);
                 break;
             case 'c': case 'C':
                 eng.holdPiece(); break;
-            case '1': this._setStrategy('random'); break;
-            case '2': this._setStrategy('badge'); break;
-            case '3': this._setStrategy('attacker'); break;
-            case '4': this._setStrategy('ko'); break;
         }
     }
 
@@ -915,76 +927,71 @@ class Game {
     _setRepeat(key, fn) {
         if (this.keyTimers[key]) return;
         this.keys[key] = true;
-        setTimeout(() => {
-            if (this.keys[key]) {
-                this.keyTimers[key] = setInterval(() => { if (this.keys[key]) fn(); else { clearInterval(this.keyTimers[key]); delete this.keyTimers[key]; } }, 50);
+        var self = this;
+        setTimeout(function() {
+            if (self.keys[key]) {
+                self.keyTimers[key] = setInterval(function() {
+                    if (self.keys[key]) fn();
+                    else { clearInterval(self.keyTimers[key]); delete self.keyTimers[key]; }
+                }, 50);
             }
         }, 170);
     }
 
-    _setStrategy(s) {
-        this.battle.strategy = s;
-        document.querySelectorAll('.target-btn').forEach(b => {
-            b.classList.toggle('active', b.dataset.strategy === s);
-        });
-        toast('策略: ' + { random: '随机', attacker: '攻击者', ko: 'KO', badge: '徽章' }[s]);
-    }
-
     _loop(now) {
-        const dt = now - this.lastTime;
+        var dt = now - this.lastTime;
         this.lastTime = now;
+        if (dt > 100) dt = 16; // cap delta on tab switch
 
         if (this.running && !this.battle.ended) {
             this.battle.update(dt);
-
-            // Update UI
-            const h = this.battle.human;
-            const rank = h.alive ? (this.battle.players.filter(p => p.alive).indexOf(h) + 1) : h.rank;
-            document.getElementById('stat-rank').textContent = rank || this.battle.rank;
+            var h = this.battle.human;
+            // Update stats
+            var aliveCount = 0;
+            for (var i = 0; i < this.battle.players.length; i++) {
+                if (this.battle.players[i].alive) aliveCount++;
+            }
+            var rank = h.alive ? (function() {
+                var r = 0;
+                for (var i = 0; i < this.battle.players.length; i++) {
+                    if (this.battle.players[i].alive && this.battle.players[i].ko > h.ko) r++;
+                }
+                return aliveCount - r;
+            }).call(this) : h.rank;
+            document.getElementById('stat-rank').textContent = rank || aliveCount;
             document.getElementById('stat-ko').textContent = h.ko;
             document.getElementById('stat-score').textContent = h.engine.score.toLocaleString();
-
             // Combo
-            const comboEl = document.getElementById('comboDisplay');
+            var comboEl = document.getElementById('comboDisplay');
             comboEl.textContent = h.engine.combo;
-            if (h.engine.combo > 0) { comboEl.classList.add('bump'); setTimeout(() => comboEl.classList.remove('bump'), 150); }
-
+            if (h.engine.combo > 0) { comboEl.classList.add('bump'); setTimeout(function() { comboEl.classList.remove('bump'); }, 150); }
             // Attack queue
-            const aq = document.getElementById('attackQueue');
-            if (this._lastAtkCount !== h.atkQ.length) {
-                this._lastAtkCount = h.atkQ.length;
+            var aq = document.getElementById('attackQueue');
+            if (this._lastAtk !== h.atkQ.length) {
+                this._lastAtk = h.atkQ.length;
                 aq.innerHTML = '';
-                for (let i = 0; i < Math.min(h.atkQ.length, 8); i++) {
-                    const bar = document.createElement('div');
+                for (var j = 0; j < Math.min(h.atkQ.length, 8); j++) {
+                    var bar = document.createElement('div');
                     bar.className = 'attack-bar';
                     aq.appendChild(bar);
                 }
             }
-
             // Opponents
             this.oppView.update(this.battle.getOpponents());
-
-            // Next / Hold
+            // Preview
             this.renderer.renderPreview(this.renderer.nCtx, this.nCv, h.engine.next ? { type: h.engine.next.type } : null);
             this.renderer.renderPreview(this.renderer.hCtx, this.hCv, h.engine.hold ? { type: h.engine.hold } : null);
-
-            // Check game end
-            if (this.battle.ended) {
-                this.running = false;
-                this._showEnd();
-            }
+            // End check
+            if (this.battle.ended) { this.running = false; this._showEnd(); }
         }
-
         // Render
-        if (this.battle.human) {
-            this.renderer.render(this.battle.human.engine);
-        }
-
-        requestAnimationFrame(t => this._loop(t));
+        if (this.battle.human) this.renderer.render(this.battle.human.engine);
+        var self = this;
+        requestAnimationFrame(function(t) { self._loop(t); });
     }
 
     _showEnd() {
-        const h = this.battle.human;
+        var h = this.battle.human;
         if (h.alive) {
             this.oTitle.textContent = '胜利！';
             this.oMsg.textContent = '恭喜，你是最后的赢家！';
@@ -992,18 +999,16 @@ class Game {
             this.oTitle.textContent = '游戏结束';
             this.oMsg.textContent = '排名: 第 ' + h.rank + ' 名';
         }
-        const elapsed = Date.now() - this.startTime;
-        const min = Math.floor(elapsed / 60000);
-        const sec = Math.floor((elapsed % 60000) / 1000);
-        this.oStats.innerHTML =
-            'KO: ' + h.ko + ' · 清行: ' + h.engine.lines + '<br>' +
-            '分数: ' + h.engine.score.toLocaleString() + ' · 时间: ' + min + ':' + String(sec).padStart(2, '0');
+        var elapsed = Date.now() - this.startTime;
+        var min = Math.floor(elapsed / 60000);
+        var sec = Math.floor((elapsed % 60000) / 1000);
+        this.oStats.innerHTML = 'KO: ' + h.ko + ' · 清行: ' + h.engine.lines + '<br>分数: ' + h.engine.score.toLocaleString() + ' · 时间: ' + min + ':' + (sec < 10 ? '0' : '') + sec;
         this.startBtn.textContent = '再来一局';
         this.overlay.classList.remove('hidden');
     }
 }
 
 /* ── Boot ───────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     window.game = new Game();
 });
