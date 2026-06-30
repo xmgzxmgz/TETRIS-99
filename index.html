@@ -4,26 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>TETRIS 99</title>
-    <meta name="theme-color" content="#050510">
+    <meta name="theme-color" content="#e8e8ed">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Background: tiled opponent boards -->
     <canvas id="bgCanvas" class="bg-canvas"></canvas>
-    <!-- Frosted glass overlay on background -->
+    <!-- Frosted glass overlay -->
     <div class="bg-frost"></div>
-
-    <!-- Animated background -->
-    <div class="bg-mesh" aria-hidden="true">
-        <div class="bg-orb bg-orb--1"></div>
-        <div class="bg-orb bg-orb--2"></div>
-        <div class="bg-orb bg-orb--3"></div>
-        <div class="bg-orb bg-orb--4"></div>
-        <div class="bg-orb bg-orb--5"></div>
-    </div>
 
     <div id="app">
         <!-- Top bar -->
@@ -36,16 +26,11 @@
             </div>
         </header>
 
-        <!-- Main area -->
+        <!-- Main: centered game board + info panel -->
         <div class="main-area">
-            <!-- Opponents -->
-            <aside class="opponents-panel glass">
-                <div class="opponents-panel__header">对手</div>
-                <div id="opponentsGrid" class="opponents-grid"></div>
-            </aside>
-
-            <!-- Game board -->
             <div class="game-center">
+                <!-- Score effects appear ABOVE the board -->
+                <div id="effectZone" class="effect-zone"></div>
                 <div class="board-frame">
                     <canvas id="gameCanvas" width="280" height="560"></canvas>
                 </div>
@@ -58,7 +43,6 @@
                 <div class="controls-hint">← → 移动 · ↑ 旋转 · ↓ 加速 · 空格 硬降 · C 保留</div>
             </div>
 
-            <!-- Info panel -->
             <aside class="info-panel">
                 <div class="info-card glass">
                     <div class="info-card__label">下一个</div>
@@ -83,8 +67,17 @@
         <div id="overlay" class="overlay">
             <div class="overlay-card">
                 <div id="overlayTitle" class="overlay-title">TETRIS 99</div>
-                <div id="overlayMessage" class="overlay-sub">99 人对战 · Liquid Glass 风格
-点击开始或按空格键</div>
+                <div id="overlayMessage" class="overlay-sub">99 人对战</div>
+                <!-- Difficulty selector -->
+                <div class="diff-selector">
+                    <span class="diff-label">AI 难度</span>
+                    <div class="diff-options">
+                        <button class="diff-btn active" data-diff="easy">简单</button>
+                        <button class="diff-btn" data-diff="medium">中等</button>
+                        <button class="diff-btn" data-diff="hard">困难</button>
+                        <button class="diff-btn" data-diff="expert">专家</button>
+                    </div>
+                </div>
                 <div id="overlayStats" class="overlay-stats"></div>
                 <button id="startBtn" class="btn-primary">开始游戏</button>
             </div>
