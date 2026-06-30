@@ -198,6 +198,7 @@ class Engine {
         if (!this.cur || this.gameOver) return 0;
         let d = 0;
         while (this.move(0, 1)) d++;
+        this.score += d * 2; // Hard drop bonus
         this._lock();
         return d;
     }
